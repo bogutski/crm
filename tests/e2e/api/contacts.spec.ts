@@ -64,13 +64,19 @@ test.describe('Contacts API', () => {
 
     test('POST /api/contacts should create a new contact', async ({ request }) => {
       const contactData = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '+1234567890',
+        name: 'John Doe',
+        emails: [{ address: 'john.doe@example.com' }],
+        phones: [
+          {
+            e164: '+1234567890',
+            international: '+1 234 567 890',
+            country: 'US',
+            type: 'MOBILE',
+            isPrimary: true,
+          },
+        ],
         company: 'Test Company',
         position: 'Manager',
-        status: 'lead',
       };
 
       const response = await request.post('/api/contacts', {
@@ -81,10 +87,11 @@ test.describe('Contacts API', () => {
       expect(response.status()).toBe(201);
       const contact = await response.json();
 
-      expect(contact.firstName).toBe(contactData.firstName);
-      expect(contact.lastName).toBe(contactData.lastName);
-      expect(contact.email).toBe(contactData.email);
-      expect(contact.fullName).toBe('John Doe');
+      expect(contact.name).toBe(contactData.name);
+      expect(contact.emails).toHaveLength(1);
+      expect(contact.emails[0].address).toBe('john.doe@example.com');
+      expect(contact.phones).toHaveLength(1);
+      expect(contact.phones[0].e164).toBe('+1234567890');
       expect(contact.id).toBeDefined();
 
       createdContactId = contact.id;
@@ -102,7 +109,7 @@ test.describe('Contacts API', () => {
       expect(Array.isArray(data.contacts)).toBe(true);
       expect(data.total).toBeGreaterThanOrEqual(0);
       expect(data.page).toBe(1);
-      expect(data.limit).toBe(20);
+      expect(data.limit).toBe(30);
     });
 
     test('GET /api/contacts/:id should return contact by id', async ({ request }) => {
@@ -110,9 +117,8 @@ test.describe('Contacts API', () => {
       const createResponse = await request.post('/api/contacts', {
         headers: { Cookie: authCookies },
         data: {
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane.smith@example.com',
+          name: 'Jane Smith',
+          emails: [{ address: 'jane.smith@example.com' }],
         },
       });
       const created = await createResponse.json();
@@ -125,8 +131,8 @@ test.describe('Contacts API', () => {
       const contact = await response.json();
 
       expect(contact.id).toBe(created.id);
-      expect(contact.firstName).toBe('Jane');
-      expect(contact.lastName).toBe('Smith');
+      expect(contact.name).toBe('Jane Smith');
+      expect(contact.emails[0].address).toBe('jane.smith@example.com');
     });
 
     test('GET /api/contacts/:id should return 404 for non-existent contact', async ({ request }) => {
@@ -143,8 +149,7 @@ test.describe('Contacts API', () => {
       const createResponse = await request.post('/api/contacts', {
         headers: { Cookie: authCookies },
         data: {
-          firstName: 'Update',
-          lastName: 'Test',
+          name: 'Update Test',
         },
       });
       const created = await createResponse.json();
@@ -153,19 +158,16 @@ test.describe('Contacts API', () => {
       const response = await request.patch(`/api/contacts/${created.id}`, {
         headers: { Cookie: authCookies },
         data: {
-          firstName: 'Updated',
+          name: 'Updated Name',
           company: 'New Company',
-          status: 'customer',
         },
       });
 
       expect(response.status()).toBe(200);
       const updated = await response.json();
 
-      expect(updated.firstName).toBe('Updated');
-      expect(updated.lastName).toBe('Test');
+      expect(updated.name).toBe('Updated Name');
       expect(updated.company).toBe('New Company');
-      expect(updated.status).toBe('customer');
     });
 
     test('DELETE /api/contacts/:id should delete contact', async ({ request }) => {
@@ -173,8 +175,7 @@ test.describe('Contacts API', () => {
       const createResponse = await request.post('/api/contacts', {
         headers: { Cookie: authCookies },
         data: {
-          firstName: 'Delete',
-          lastName: 'Me',
+          name: 'Delete Me',
         },
       });
       const created = await createResponse.json();
@@ -202,8 +203,7 @@ test.describe('Contacts API', () => {
       await request.post('/api/contacts', {
         headers: { Cookie: authCookies },
         data: {
-          firstName: uniqueName,
-          lastName: 'Contact',
+          name: uniqueName,
         },
       });
 
@@ -215,30 +215,7 @@ test.describe('Contacts API', () => {
       const data = await response.json();
 
       expect(data.contacts.length).toBeGreaterThanOrEqual(1);
-      expect(data.contacts[0].firstName).toBe(uniqueName);
-    });
-
-    test('GET /api/contacts should support status filter', async ({ request }) => {
-      // Создаём контакт со статусом customer
-      await request.post('/api/contacts', {
-        headers: { Cookie: authCookies },
-        data: {
-          firstName: 'Customer',
-          lastName: 'Test',
-          status: 'customer',
-        },
-      });
-
-      const response = await request.get('/api/contacts?status=customer', {
-        headers: { Cookie: authCookies },
-      });
-
-      expect(response.status()).toBe(200);
-      const data = await response.json();
-
-      data.contacts.forEach((contact: { status: string }) => {
-        expect(contact.status).toBe('customer');
-      });
+      expect(data.contacts[0].name).toBe(uniqueName);
     });
 
     test('GET /api/contacts should support pagination', async ({ request }) => {

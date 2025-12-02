@@ -52,10 +52,8 @@ test.describe('Authentication', () => {
     });
 
     test('should register 5901867@gmail.com with password 123456', async ({ page }) => {
-      // Use unique email to avoid conflicts with parallel tests
-      const uniqueEmail = `5901867-${Date.now()}@gmail.com`;
       const testUser = {
-        email: uniqueEmail,
+        email: '5901867@gmail.com',
         password: '123456',
         name: 'Admin User',
       };

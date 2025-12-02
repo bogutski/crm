@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filters = contactFiltersSchema.parse({
       search: searchParams.get('search') || undefined,
-      status: searchParams.get('status') || undefined,
       ownerId: searchParams.get('ownerId') || undefined,
       page: searchParams.get('page') || undefined,
       limit: searchParams.get('limit') || undefined,

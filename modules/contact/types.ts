@@ -1,47 +1,61 @@
-import { IContact, ContactStatus } from './model';
+import { IContact, IEmail, IPhone } from './model';
 
-export type { IContact, ContactStatus };
+export type { IContact, IEmail, IPhone };
+
+export interface EmailDTO {
+  address: string;
+  isVerified?: boolean;
+  isSubscribed?: boolean;
+  unsubscribedAt?: Date;
+  bouncedAt?: Date;
+  lastEmailedAt?: Date;
+}
+
+export interface PhoneDTO {
+  e164: string;
+  international: string;
+  country: string;
+  type?: 'MOBILE' | 'FIXED_LINE' | 'UNKNOWN';
+  isPrimary?: boolean;
+  isVerified?: boolean;
+  isSubscribed?: boolean;
+  unsubscribedAt?: Date;
+  lastSmsAt?: Date;
+}
 
 export interface CreateContactDTO {
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
+  name: string;
+  emails?: EmailDTO[];
+  phones?: PhoneDTO[];
   company?: string;
   position?: string;
-  status?: ContactStatus;
-  source?: string;
   notes?: string;
-  tags?: string[];
+  contactType?: string;
+  source?: string;
   ownerId: string;
 }
 
 export interface UpdateContactDTO {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
+  name?: string;
+  emails?: EmailDTO[];
+  phones?: PhoneDTO[];
   company?: string;
   position?: string;
-  status?: ContactStatus;
-  source?: string;
   notes?: string;
-  tags?: string[];
+  contactType?: string | null;
+  source?: string | null;
 }
 
 export interface ContactResponse {
   id: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  email?: string;
-  phone?: string;
+  name: string;
+  emails: IEmail[];
+  phones: IPhone[];
   company?: string;
   position?: string;
-  status: ContactStatus;
-  source?: string;
   notes?: string;
-  tags: string[];
+  contactType?: string;
+  source?: string;
   ownerId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -56,9 +70,9 @@ export interface ContactsListResponse {
 
 export interface ContactFilters {
   search?: string;
-  status?: ContactStatus;
   ownerId?: string;
-  tags?: string[];
+  contactType?: string;
+  source?: string;
   page?: number;
   limit?: number;
 }

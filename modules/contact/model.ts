@@ -1,44 +1,133 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type ContactStatus = 'active' | 'inactive' | 'lead' | 'customer';
+export type PhoneType = 'MOBILE' | 'FIXED_LINE' | 'UNKNOWN';
+
+// Sub-document interfaces
+export interface IEmail {
+  address: string;
+  isVerified: boolean;
+  isSubscribed: boolean;
+  unsubscribedAt?: Date;
+  bouncedAt?: Date;
+  lastEmailedAt?: Date;
+}
+
+export interface IPhone {
+  e164: string;
+  international: string;
+  country: string;
+  type: PhoneType;
+  isPrimary: boolean;
+  isVerified: boolean;
+  isSubscribed: boolean;
+  unsubscribedAt?: Date;
+  lastSmsAt?: Date;
+}
 
 export interface IContact extends Document {
   _id: mongoose.Types.ObjectId;
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
+  name: string;
+  emails: IEmail[];
+  phones: IPhone[];
   company?: string;
   position?: string;
-  status: ContactStatus;
-  source?: string;
   notes?: string;
-  tags: string[];
+  contactType?: string; // код из словаря contact_types
+  source?: string; // код из словаря sources
   ownerId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const ContactSchema = new Schema<IContact>(
+// Sub-schemas
+const EmailSchema = new Schema<IEmail>(
   {
-    firstName: {
+    address: {
       type: String,
       required: true,
-      trim: true,
-    },
-    lastName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    email: {
-      type: String,
       lowercase: true,
       trim: true,
     },
-    phone: {
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isSubscribed: {
+      type: Boolean,
+      default: true,
+    },
+    unsubscribedAt: {
+      type: Date,
+    },
+    bouncedAt: {
+      type: Date,
+    },
+    lastEmailedAt: {
+      type: Date,
+    },
+  },
+  { _id: false }
+);
+
+const PhoneSchema = new Schema<IPhone>(
+  {
+    e164: {
       type: String,
+      required: true,
       trim: true,
+    },
+    international: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    country: {
+      type: String,
+      required: true,
+      uppercase: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ['MOBILE', 'FIXED_LINE', 'UNKNOWN'],
+      default: 'UNKNOWN',
+    },
+    isPrimary: {
+      type: Boolean,
+      default: false,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isSubscribed: {
+      type: Boolean,
+      default: true,
+    },
+    unsubscribedAt: {
+      type: Date,
+    },
+    lastSmsAt: {
+      type: Date,
+    },
+  },
+  { _id: false }
+);
+
+const ContactSchema = new Schema<IContact>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    emails: {
+      type: [EmailSchema],
+      default: [],
+    },
+    phones: {
+      type: [PhoneSchema],
+      default: [],
     },
     company: {
       type: String,
@@ -48,21 +137,20 @@ const ContactSchema = new Schema<IContact>(
       type: String,
       trim: true,
     },
-    status: {
+    notes: {
       type: String,
-      enum: ['active', 'inactive', 'lead', 'customer'],
-      default: 'lead',
+    },
+    contactType: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true,
     },
     source: {
       type: String,
       trim: true,
-    },
-    notes: {
-      type: String,
-    },
-    tags: {
-      type: [String],
-      default: [],
+      lowercase: true,
+      index: true,
     },
     ownerId: {
       type: Schema.Types.ObjectId,
@@ -75,10 +163,10 @@ const ContactSchema = new Schema<IContact>(
   }
 );
 
-ContactSchema.index({ email: 1 });
+ContactSchema.index({ 'emails.address': 1 });
+ContactSchema.index({ 'phones.e164': 1 });
 ContactSchema.index({ ownerId: 1 });
-ContactSchema.index({ status: 1 });
-ContactSchema.index({ firstName: 'text', lastName: 'text', company: 'text' });
+ContactSchema.index({ name: 'text', company: 'text' });
 
 const Contact: Model<IContact> =
   mongoose.models.Contact || mongoose.model<IContact>('Contact', ContactSchema);

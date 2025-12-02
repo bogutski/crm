@@ -11,17 +11,14 @@ import { connectToDatabase as dbConnect } from '@/lib/mongodb';
 function toContactResponse(contact: IContact): ContactResponse {
   return {
     id: contact._id.toString(),
-    firstName: contact.firstName,
-    lastName: contact.lastName,
-    fullName: `${contact.firstName} ${contact.lastName}`,
-    email: contact.email,
-    phone: contact.phone,
+    name: contact.name,
+    emails: contact.emails || [],
+    phones: contact.phones || [],
     company: contact.company,
     position: contact.position,
-    status: contact.status,
-    source: contact.source,
     notes: contact.notes,
-    tags: contact.tags,
+    contactType: contact.contactType,
+    source: contact.source,
     ownerId: contact.ownerId.toString(),
     createdAt: contact.createdAt,
     updatedAt: contact.updatedAt,
@@ -31,29 +28,30 @@ function toContactResponse(contact: IContact): ContactResponse {
 export async function getContacts(filters: ContactFilters): Promise<ContactsListResponse> {
   await dbConnect();
 
-  const { search, status, ownerId, tags, page = 1, limit = 20 } = filters;
+  const { search, ownerId, contactType, source, page = 1, limit = 20 } = filters;
 
   const query: Record<string, unknown> = {};
 
   if (search) {
     query.$or = [
-      { firstName: { $regex: search, $options: 'i' } },
-      { lastName: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
+      { name: { $regex: search, $options: 'i' } },
+      { 'emails.address': { $regex: search, $options: 'i' } },
+      { 'phones.e164': { $regex: search, $options: 'i' } },
+      { 'phones.international': { $regex: search, $options: 'i' } },
       { company: { $regex: search, $options: 'i' } },
     ];
-  }
-
-  if (status) {
-    query.status = status;
   }
 
   if (ownerId) {
     query.ownerId = ownerId;
   }
 
-  if (tags && tags.length > 0) {
-    query.tags = { $in: tags };
+  if (contactType) {
+    query.contactType = contactType;
+  }
+
+  if (source) {
+    query.source = source;
   }
 
   const skip = (page - 1) * limit;
@@ -84,16 +82,14 @@ export async function createContact(data: CreateContactDTO): Promise<ContactResp
   await dbConnect();
 
   const contact = await Contact.create({
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
-    phone: data.phone,
+    name: data.name,
+    emails: data.emails || [],
+    phones: data.phones || [],
     company: data.company,
     position: data.position,
-    status: data.status || 'lead',
-    source: data.source,
     notes: data.notes,
-    tags: data.tags || [],
+    contactType: data.contactType,
+    source: data.source,
     ownerId: data.ownerId,
   });
 
@@ -124,30 +120,4 @@ export async function getContactsByOwner(ownerId: string): Promise<ContactRespon
 
   const contacts = await Contact.find({ ownerId }).sort({ createdAt: -1 });
   return contacts.map(toContactResponse);
-}
-
-export async function addTagToContact(id: string, tag: string): Promise<ContactResponse | null> {
-  await dbConnect();
-
-  const contact = await Contact.findByIdAndUpdate(
-    id,
-    { $addToSet: { tags: tag } },
-    { new: true }
-  );
-  if (!contact) return null;
-
-  return toContactResponse(contact);
-}
-
-export async function removeTagFromContact(id: string, tag: string): Promise<ContactResponse | null> {
-  await dbConnect();
-
-  const contact = await Contact.findByIdAndUpdate(
-    id,
-    { $pull: { tags: tag } },
-    { new: true }
-  );
-  if (!contact) return null;
-
-  return toContactResponse(contact);
 }
