@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { href: '/contacts', label: 'Контакты' },
   { href: '/opportunities', label: 'Сделки' },
+  { href: '/tasks', label: 'Задачи' },
+  { href: '/chat', label: 'Чат' },
 ];
 
 export function Navigation() {

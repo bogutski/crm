@@ -15,6 +15,8 @@ import contactRoutes from '../modules/contact/routes.meta';
 import userRoutes from '../modules/user/routes.meta';
 import opportunityRoutes from '../modules/opportunity/routes.meta';
 import dictionaryRoutes from '../modules/dictionary/routes.meta';
+import interactionRoutes from '../modules/interaction/routes.meta';
+import channelRoutes from '../modules/channel/routes.meta';
 
 // Собираем все маршруты
 const allRoutes: ApiRoute[] = [
@@ -22,6 +24,8 @@ const allRoutes: ApiRoute[] = [
   ...userRoutes,
   ...opportunityRoutes,
   ...dictionaryRoutes,
+  ...interactionRoutes,
+  ...channelRoutes,
 ];
 
 // Генерируем OpenAPI документ

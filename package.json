@@ -11,6 +11,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "seed": "npx tsx scripts/seed.ts",
+    "seed:extreme": "npx tsx scripts/seed-extreme.ts",
     "db:reset": "npx tsx scripts/db-reset.ts",
     "openapi:generate": "npx tsx scripts/generate-openapi.ts"
   },

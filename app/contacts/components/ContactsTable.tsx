@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Pencil, ChevronLeft, ChevronRight, Trash2, Eye } from 'lucide-react';
+import { Pencil, ChevronLeft, ChevronRight, Trash2, ScanEye } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { ContactForm } from './ContactForm';
+import { ContactPreviewPanel } from './ContactPreviewPanel';
 import { Badge } from '@/components/ui/Badge';
 
 interface Email {
@@ -63,6 +64,7 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [previewContactId, setPreviewContactId] = useState<string | null>(null);
 
   // Get current values from URL or use initial values
   const currentPage = parseInt(searchParams.get('page') || String(initialPage), 10);
@@ -283,12 +285,12 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                   className="border-b border-zinc-200 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                 >
                   <td className="px-4 py-1.5">
-                    <Link
-                      href={`/contacts/${contact.id}`}
-                      className="text-sm font-medium text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400"
+                    <button
+                      onClick={() => setPreviewContactId(contact.id)}
+                      className="text-sm font-medium text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400 hover:underline text-left cursor-pointer"
                     >
                       {contact.name}
-                    </Link>
+                    </button>
                   </td>
                   <td className="px-4 py-1.5">
                     {contact.contactType ? (
@@ -347,9 +349,9 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                       <Link
                         href={`/contacts/${contact.id}`}
                         className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
-                        title="Просмотр"
+                        title="Открыть страницу"
                       >
-                        <Eye className="w-4 h-4" />
+                        <ScanEye className="w-4 h-4" />
                       </Link>
                       <button
                         onClick={() => handleEditClick(contact)}
@@ -454,6 +456,14 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
         isLoading={isDeleting}
+      />
+
+      {/* Contact Preview Panel */}
+      <ContactPreviewPanel
+        contactId={previewContactId}
+        isOpen={!!previewContactId}
+        onClose={() => setPreviewContactId(null)}
+        onDeleted={() => fetchContacts(currentPage, currentSearch)}
       />
     </>
   );

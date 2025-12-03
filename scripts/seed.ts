@@ -5,13 +5,12 @@
  *   1. Start the dev server: npm run dev
  *   2. Run: npm run seed
  *
- * ALWAYS clears the database and inserts fresh data.
- *
  * Creates:
  * - Admin user (5901867@gmail.com / 123456)
- * - Dictionaries (contact types, sources, industries, opportunity priorities)
+ * - Dictionaries (contact types, sources, industries, opportunity/task priorities)
  * - 1000 contacts
  * - 2000-3000 opportunities
+ * - 5 projects with 50+ tasks
  */
 
 import mongoose from 'mongoose';
@@ -24,48 +23,50 @@ config({ path: '.env.local' });
 const BASE_URL = process.env.API_URL || 'http://localhost:3001';
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
-// Collections to clear on reset
-const COLLECTIONS_TO_CLEAR = [
-  'users',
-  'accounts',
-  'sessions',
-  'contacts',
-  'dictionaries',
-  'dictionaryitems',
-  'opportunities',
-  'pipelines',
-  'pipelinestages',
-  'channels',
-  'interactions',
-];
+// Collections to clear on reset (commented out - uncomment to enable full reset)
+// const COLLECTIONS_TO_CLEAR = [
+//   'users',
+//   'accounts',
+//   'sessions',
+//   'contacts',
+//   'dictionaries',
+//   'dictionaryitems',
+//   'opportunities',
+//   'pipelines',
+//   'pipelinestages',
+//   'channels',
+//   'interactions',
+//   'projects',
+//   'tasks',
+// ];
 
-async function resetDatabase(): Promise<void> {
-  if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI not found in .env.local');
-  }
+// async function resetDatabase(): Promise<void> {
+//   if (!MONGODB_URI) {
+//     throw new Error('MONGODB_URI not found in .env.local');
+//   }
 
-  console.log('   Connecting to MongoDB...');
-  await mongoose.connect(MONGODB_URI);
+//   console.log('   Connecting to MongoDB...');
+//   await mongoose.connect(MONGODB_URI);
 
-  const db = mongoose.connection.db;
-  if (!db) {
-    throw new Error('Failed to get database instance');
-  }
+//   const db = mongoose.connection.db;
+//   if (!db) {
+//     throw new Error('Failed to get database instance');
+//   }
 
-  const existingCollections = await db.listCollections().toArray();
-  const existingNames = existingCollections.map(c => c.name);
+//   const existingCollections = await db.listCollections().toArray();
+//   const existingNames = existingCollections.map(c => c.name);
 
-  let deleted = 0;
-  for (const collectionName of COLLECTIONS_TO_CLEAR) {
-    if (existingNames.includes(collectionName)) {
-      const result = await db.collection(collectionName).deleteMany({});
-      deleted += result.deletedCount;
-    }
-  }
+//   let deleted = 0;
+//   for (const collectionName of COLLECTIONS_TO_CLEAR) {
+//     if (existingNames.includes(collectionName)) {
+//       const result = await db.collection(collectionName).deleteMany({});
+//       deleted += result.deletedCount;
+//     }
+//   }
 
-  console.log(`   Deleted ${deleted} documents`);
-  await mongoose.disconnect();
-}
+//   console.log(`   Deleted ${deleted} documents`);
+//   await mongoose.disconnect();
+// }
 
 // ==================== CONFIG ====================
 
@@ -266,6 +267,19 @@ const DICTIONARIES = [
     ],
   },
   {
+    code: 'task_priority',
+    name: 'Приоритет задачи',
+    description: 'Приоритеты для задач',
+    allowHierarchy: false,
+    fields: [{ code: 'color', name: 'Цвет', type: 'color' as const, required: true }],
+    items: [
+      { code: 'low', name: 'Низкий', properties: { color: '#6b7280' } },
+      { code: 'medium', name: 'Средний', properties: { color: '#eab308' } },
+      { code: 'high', name: 'Высокий', properties: { color: '#f97316' } },
+      { code: 'urgent', name: 'Срочный', properties: { color: '#ef4444' } },
+    ],
+  },
+  {
     code: 'channels',
     name: 'Channels',
     description: 'Communication channels for messages',
@@ -433,6 +447,101 @@ function generateOpportunity(
   };
 }
 
+// Projects data
+const PROJECTS = [
+  {
+    name: 'Запуск нового продукта',
+    description: 'Подготовка и запуск нового SaaS продукта на рынок',
+    status: 'active' as const,
+    deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // +90 days
+  },
+  {
+    name: 'Редизайн сайта',
+    description: 'Полный редизайн корпоративного сайта с новым UI/UX',
+    status: 'active' as const,
+    deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // +45 days
+  },
+  {
+    name: 'Интеграция с партнёрами',
+    description: 'Настройка API интеграций с ключевыми партнёрами',
+    status: 'active' as const,
+    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
+  },
+  {
+    name: 'Оптимизация процессов',
+    description: 'Анализ и оптимизация внутренних бизнес-процессов',
+    status: 'on_hold' as const,
+    deadline: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // +60 days
+  },
+  {
+    name: 'Маркетинговая кампания Q1',
+    description: 'Планирование и проведение маркетинговой кампании первого квартала',
+    status: 'completed' as const,
+    deadline: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // -15 days
+  },
+];
+
+// Task templates for projects
+const taskTemplates = [
+  { title: 'Провести исследование рынка', status: 'completed' as const },
+  { title: 'Подготовить техническое задание', status: 'completed' as const },
+  { title: 'Согласовать бюджет', status: 'completed' as const },
+  { title: 'Создать прототип', status: 'in_progress' as const },
+  { title: 'Провести тестирование', status: 'open' as const },
+  { title: 'Подготовить документацию', status: 'open' as const },
+  { title: 'Настроить аналитику', status: 'open' as const },
+  { title: 'Запустить рекламную кампанию', status: 'open' as const },
+  { title: 'Обучить команду', status: 'open' as const },
+  { title: 'Провести ретроспективу', status: 'open' as const },
+];
+
+// Standalone tasks (without project)
+const standaloneTasks = [
+  { title: 'Ответить на письма клиентов', daysFromNow: 0 },
+  { title: 'Подготовить отчёт за неделю', daysFromNow: 1 },
+  { title: 'Созвон с командой', daysFromNow: 0 },
+  { title: 'Обновить CRM данные', daysFromNow: 2 },
+  { title: 'Проверить счета на оплату', daysFromNow: -1 },
+  { title: 'Подготовить презентацию', daysFromNow: 3 },
+  { title: 'Заказать канцелярию', daysFromNow: 5 },
+  { title: 'Провести 1-on-1 с сотрудником', daysFromNow: 2 },
+  { title: 'Обновить пароли', daysFromNow: 7 },
+  { title: 'Забронировать переговорку', daysFromNow: 1 },
+];
+
+const taskStatuses = ['open', 'in_progress', 'completed', 'cancelled'] as const;
+
+function generateTask(
+  projectId: string | null,
+  contactId: string | null,
+  priorityIds: string[],
+  title?: string,
+  status?: typeof taskStatuses[number]
+) {
+  const dueDate = faker.date.between({
+    from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    to: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
+
+  const taskStatus = status || randomElement([...taskStatuses]);
+  const hasDescription = faker.datatype.boolean({ probability: 0.5 });
+
+  const linkedTo = projectId
+    ? { entityType: 'project' as const, entityId: projectId }
+    : contactId
+    ? { entityType: 'contact' as const, entityId: contactId }
+    : undefined;
+
+  return {
+    title: title || faker.hacker.phrase(),
+    description: hasDescription ? faker.lorem.sentence({ min: 3, max: 10 }) : undefined,
+    status: taskStatus,
+    priorityId: randomElement(priorityIds),
+    dueDate: dueDate.toISOString(),
+    linkedTo,
+  };
+}
+
 // ==================== MAIN ====================
 
 async function checkServer(): Promise<boolean> {
@@ -450,15 +559,15 @@ async function main() {
   console.log('='.repeat(60));
   console.log(`\nTarget: ${BASE_URL}\n`);
 
-  // Always reset database first
-  console.log('0. Resetting database...');
-  try {
-    await resetDatabase();
-    console.log('   Database cleared\n');
-  } catch (error) {
-    console.error('   Failed to reset database:', error);
-    process.exit(1);
-  }
+  // Database reset is disabled - uncomment resetDatabase() above to enable
+  // console.log('0. Resetting database...');
+  // try {
+  //   await resetDatabase();
+  //   console.log('   Database cleared\n');
+  // } catch (error) {
+  //   console.error('   Failed to reset database:', error);
+  //   process.exit(1);
+  // }
 
   // Check server
   console.log('1. Checking server...');
@@ -727,6 +836,170 @@ async function main() {
     console.log(`\n   Created ${opportunitiesCreated} opportunities${opportunityErrors > 0 ? ` (${opportunityErrors} errors)` : ''}`);
   }
 
+  // Create test contact with SMS conversation
+  console.log('\n10. Creating test contact with SMS conversation...');
+
+  const testContact = {
+    name: 'Тестовый Контакт SMS',
+    emails: [{ address: 'test-sms@example.com', isVerified: true, isSubscribed: true }],
+    phones: [{ e164: '+79001234567', international: '+7 900 123-45-67', country: 'RU', type: 'MOBILE' as const, isPrimary: true }],
+    company: 'ООО Тестовая Компания',
+    position: 'Менеджер',
+  };
+
+  let testContactId: string | null = null;
+  try {
+    const contactResult = await api.post<{ id: string; name: string }>('/api/contacts', testContact, 201);
+    testContactId = contactResult.id;
+    console.log(`   Created test contact: ${testContact.name}`);
+  } catch (error) {
+    console.log('   Failed to create test contact');
+  }
+
+  // Get SMS channel ID
+  let smsChannelId: string | null = null;
+  try {
+    const channelsResponse = await api.post<{ channels: { id: string; code: string }[] }>('/api/channels/search', {});
+    const smsChannel = channelsResponse.channels?.find((c: { code: string }) => c.code === 'sms');
+    if (smsChannel) {
+      smsChannelId = smsChannel.id;
+      console.log(`   Found SMS channel: ${smsChannelId}`);
+    }
+  } catch (error) {
+    console.log('   Could not find SMS channel:', error);
+  }
+
+  // Create SMS conversation
+  if (testContactId && smsChannelId) {
+    const smsConversation = [
+      { direction: 'inbound' as const, content: 'Здравствуйте! Увидел вашу рекламу, интересует CRM система.', minutesAgo: 120 },
+      { direction: 'outbound' as const, content: 'Добрый день! Спасибо за обращение. Какие задачи хотите решить с помощью CRM?', minutesAgo: 115, status: 'read' as const },
+      { direction: 'inbound' as const, content: 'Нужно вести базу клиентов, отслеживать сделки и напоминать о звонках.', minutesAgo: 110 },
+      { direction: 'outbound' as const, content: 'Отлично! Наша система как раз для этого подходит. Сколько менеджеров будет работать?', minutesAgo: 105, status: 'read' as const },
+      { direction: 'inbound' as const, content: 'Пока 5 человек, но планируем расширяться до 15.', minutesAgo: 100 },
+      { direction: 'outbound' as const, content: 'Понял. Могу предложить демо-доступ на 14 дней. Хотите попробовать?', minutesAgo: 95, status: 'read' as const },
+      { direction: 'inbound' as const, content: 'Да, было бы здорово! Как это сделать?', minutesAgo: 90 },
+      { direction: 'outbound' as const, content: 'Отправлю вам ссылку на почту. Подскажите, когда удобно созвониться для обучения?', minutesAgo: 85, status: 'delivered' as const },
+      { direction: 'inbound' as const, content: 'Завтра после обеда было бы идеально, часов в 14-15.', minutesAgo: 60 },
+      { direction: 'outbound' as const, content: 'Записал! Завтра в 14:00 позвоню. Ссылку на демо уже отправил на почту.', minutesAgo: 55, status: 'read' as const },
+      { direction: 'inbound' as const, content: 'Получил, спасибо! До завтра.', minutesAgo: 50 },
+      { direction: 'outbound' as const, content: 'До связи! Если будут вопросы — пишите.', minutesAgo: 45, status: 'delivered' as const },
+      { direction: 'inbound' as const, content: 'Посмотрел немного, очень удобно. Есть вопрос по интеграции с 1С.', minutesAgo: 20 },
+      { direction: 'outbound' as const, content: 'Да, интеграция с 1С есть. Завтра на созвоне всё подробно покажу!', minutesAgo: 15, status: 'sent' as const },
+    ];
+
+    let interactionsCreated = 0;
+    for (const msg of smsConversation) {
+      const createdAt = new Date(Date.now() - msg.minutesAgo * 60 * 1000).toISOString();
+      try {
+        await api.post('/api/interactions', {
+          channelId: smsChannelId,
+          contactId: testContactId,
+          direction: msg.direction,
+          status: msg.status || (msg.direction === 'inbound' ? 'delivered' : 'sent'),
+          content: msg.content,
+          createdAt,
+        }, 201);
+        interactionsCreated++;
+      } catch {
+        // ignore
+      }
+    }
+    console.log(`   Created ${interactionsCreated} SMS messages`);
+  }
+
+  // Get task priority IDs
+  console.log('\n11. Getting task priorities...');
+  let taskPriorityIds: string[] = [];
+  try {
+    const taskPrioritiesResponse = await api.get<{ items: { id: string }[] }>('/api/dictionaries/task_priority/items');
+    taskPriorityIds = taskPrioritiesResponse.items.map(p => p.id);
+    console.log(`   Found ${taskPriorityIds.length} task priorities`);
+  } catch (error) {
+    console.log('   Could not fetch task priorities, using empty array');
+  }
+
+  // Create projects
+  console.log('\n12. Creating projects...');
+  const createdProjects: { id: string; name: string }[] = [];
+
+  for (const projectData of PROJECTS) {
+    try {
+      const project = await api.post<{ id: string; name: string }>('/api/projects', {
+        ...projectData,
+        deadline: projectData.deadline.toISOString(),
+      }, 201);
+      createdProjects.push({ id: project.id, name: projectData.name });
+      console.log(`   + ${projectData.name}`);
+    } catch (error) {
+      console.log(`   ! Failed to create project: ${projectData.name}`);
+    }
+  }
+  console.log(`   Created ${createdProjects.length} projects`);
+
+  // Create tasks
+  console.log('\n13. Creating tasks...');
+  let tasksCreated = 0;
+
+  // Create tasks for each project
+  for (const project of createdProjects) {
+    for (const template of taskTemplates) {
+      try {
+        await api.post('/api/tasks', generateTask(
+          project.id,
+          null,
+          taskPriorityIds,
+          `${template.title} (${project.name})`,
+          template.status
+        ), 201);
+        tasksCreated++;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  console.log(`   Created ${tasksCreated} project tasks`);
+
+  // Create standalone tasks
+  let standaloneTasksCreated = 0;
+  for (const taskData of standaloneTasks) {
+    const dueDate = new Date(Date.now() + taskData.daysFromNow * 24 * 60 * 60 * 1000);
+    try {
+      await api.post('/api/tasks', {
+        title: taskData.title,
+        status: taskData.daysFromNow < 0 ? 'open' : 'open', // Overdue tasks still open
+        priorityId: randomElement(taskPriorityIds),
+        dueDate: dueDate.toISOString(),
+      }, 201);
+      standaloneTasksCreated++;
+    } catch {
+      // ignore
+    }
+  }
+  console.log(`   Created ${standaloneTasksCreated} standalone tasks`);
+
+  // Create tasks linked to contacts
+  let contactTasksCreated = 0;
+  const contactsForTasks = createdContacts.slice(0, 20); // First 20 contacts
+  for (const contact of contactsForTasks) {
+    const taskCount = faker.number.int({ min: 1, max: 3 });
+    for (let i = 0; i < taskCount; i++) {
+      try {
+        await api.post('/api/tasks', generateTask(
+          null,
+          contact.id,
+          taskPriorityIds
+        ), 201);
+        contactTasksCreated++;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  console.log(`   Created ${contactTasksCreated} contact tasks`);
+
+  const totalTasks = tasksCreated + standaloneTasksCreated + contactTasksCreated;
+
   // Summary
   console.log('\n' + '='.repeat(60));
   console.log('  SEED COMPLETED');
@@ -735,6 +1008,12 @@ async function main() {
   console.log(`    - ${channelsCreated} channels`);
   console.log(`    - ${createdContacts.length} contacts`);
   console.log(`    - ${opportunitiesCreated} opportunities`);
+  console.log(`    - ${createdProjects.length} projects`);
+  console.log(`    - ${totalTasks} tasks`);
+  if (testContactId) {
+    console.log(`\n  Test contact for SMS:`);
+    console.log(`    Name: ${testContact.name}`);
+  }
   console.log(`\n  Login credentials:`);
   console.log(`    Email: ${INITIAL_USER.email}`);
   console.log(`    Password: ${INITIAL_USER.password}`);

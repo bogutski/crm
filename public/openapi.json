@@ -2112,70 +2112,184 @@
                             "type": "string",
                             "description": "Уникальный идентификатор"
                           },
-                          "title": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "number"
+                          },
+                          "closingDate": {
                             "type": "string",
-                            "description": "Название"
+                            "format": "date-time"
+                          },
+                          "utm": {
+                            "type": "object",
+                            "properties": {
+                              "source": {
+                                "type": "string"
+                              },
+                              "medium": {
+                                "type": "string"
+                              },
+                              "campaign": {
+                                "type": "string"
+                              },
+                              "term": {
+                                "type": "string"
+                              },
+                              "content": {
+                                "type": "string"
+                              }
+                            },
+                            "description": "UTM метки"
                           },
                           "description": {
                             "type": "string"
                           },
-                          "value": {
-                            "type": "number",
-                            "description": "Сумма"
+                          "externalId": {
+                            "type": "string"
                           },
-                          "currency": {
-                            "type": "string",
-                            "description": "Валюта"
+                          "archived": {
+                            "type": "boolean",
+                            "description": "Архивирована"
                           },
-                          "stage": {
-                            "type": "string",
-                            "enum": [
-                              "prospecting",
-                              "qualification",
-                              "proposal",
-                              "negotiation",
-                              "closed_won",
-                              "closed_lost"
+                          "contact": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "ID контакта"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Имя контакта"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
                             ],
-                            "description": "Стадия"
+                            "description": "Контакт сделки",
+                            "nullable": true
+                          },
+                          "owner": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "ID владельца"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Имя владельца"
+                              },
+                              "email": {
+                                "type": "string",
+                                "description": "Email владельца"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "email"
+                            ],
+                            "description": "Владелец сделки",
+                            "nullable": true
                           },
                           "priority": {
-                            "type": "string",
-                            "enum": [
-                              "low",
-                              "medium",
-                              "high"
-                            ],
-                            "description": "Приоритет"
-                          },
-                          "probability": {
-                            "type": "number",
-                            "description": "Вероятность закрытия"
-                          },
-                          "expectedCloseDate": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "actualCloseDate": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "contactId": {
-                            "type": "string"
-                          },
-                          "ownerId": {
-                            "type": "string",
-                            "description": "ID владельца"
-                          },
-                          "notes": {
-                            "type": "string"
-                          },
-                          "tags": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "ID приоритета"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Название"
+                              },
+                              "color": {
+                                "type": "string"
+                              }
                             },
-                            "description": "Теги"
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "description": "Приоритет сделки",
+                            "nullable": true
+                          },
+                          "pipeline": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "ID воронки"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Название воронки"
+                              },
+                              "code": {
+                                "type": "string",
+                                "description": "Код воронки"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "code"
+                            ],
+                            "description": "Воронка сделки",
+                            "nullable": true
+                          },
+                          "stage": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "ID этапа"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Название этапа"
+                              },
+                              "color": {
+                                "type": "string",
+                                "description": "Цвет"
+                              },
+                              "order": {
+                                "type": "number",
+                                "description": "Порядок"
+                              },
+                              "probability": {
+                                "type": "number",
+                                "description": "Вероятность закрытия"
+                              },
+                              "isInitial": {
+                                "type": "boolean",
+                                "description": "Начальный этап"
+                              },
+                              "isFinal": {
+                                "type": "boolean",
+                                "description": "Финальный этап"
+                              },
+                              "isWon": {
+                                "type": "boolean",
+                                "description": "Успешное закрытие"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "color",
+                              "order",
+                              "probability",
+                              "isInitial",
+                              "isFinal",
+                              "isWon"
+                            ],
+                            "description": "Этап воронки",
+                            "nullable": true
                           },
                           "createdAt": {
                             "type": "string",
@@ -2190,14 +2304,7 @@
                         },
                         "required": [
                           "id",
-                          "title",
-                          "value",
-                          "currency",
-                          "stage",
-                          "priority",
-                          "probability",
-                          "ownerId",
-                          "tags",
+                          "archived",
                           "createdAt",
                           "updatedAt"
                         ],
@@ -2227,24 +2334,33 @@
                   "description": "Список сделок с пагинацией"
                 },
                 "example": {
-                  "data": [
+                  "opportunities": [
                     {
                       "id": "clx1234567890abcdef",
-                      "title": "Внедрение CRM системы",
+                      "name": "Внедрение CRM системы",
                       "description": "Проект по внедрению CRM для автоматизации продаж",
                       "amount": 1500000,
-                      "currency": "USD",
-                      "stage": "negotiation",
-                      "priority": "high",
-                      "probability": 70,
-                      "expectedCloseDate": "2024-03-15",
-                      "contactId": "clx0987654321fedcba",
-                      "ownerId": "clxowner123456789ab",
+                      "closingDate": "2024-03-15",
+                      "archived": false,
+                      "externalId": "EXT-001",
+                      "utm": {
+                        "source": "google",
+                        "medium": "cpc",
+                        "campaign": "spring_sale"
+                      },
                       "contact": {
                         "id": "clx0987654321fedcba",
-                        "firstName": "Иван",
-                        "lastName": "Петров",
-                        "company": "ООО \"Технологии\""
+                        "name": "Иван Петров"
+                      },
+                      "owner": {
+                        "id": "clxowner123456789ab",
+                        "name": "Менеджер",
+                        "email": "manager@example.com"
+                      },
+                      "priority": {
+                        "id": "clxpriority123",
+                        "name": "Высокий",
+                        "color": "#f97316"
                       },
                       "createdAt": "2024-01-20T14:00:00.000Z",
                       "updatedAt": "2024-02-01T09:30:00.000Z"
@@ -2252,8 +2368,7 @@
                   ],
                   "total": 1,
                   "page": 1,
-                  "limit": 20,
-                  "totalPages": 1
+                  "limit": 20
                 }
               }
             }
@@ -2300,26 +2415,8 @@
                   "search": {
                     "type": "string"
                   },
-                  "stage": {
-                    "type": "string",
-                    "enum": [
-                      "prospecting",
-                      "qualification",
-                      "proposal",
-                      "negotiation",
-                      "closed_won",
-                      "closed_lost"
-                    ],
-                    "description": "Стадия сделки: prospecting - поиск, qualification - квалификация, proposal - предложение, negotiation - переговоры, closed_won - выиграна, closed_lost - проиграна"
-                  },
-                  "priority": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "medium",
-                      "high"
-                    ],
-                    "description": "Приоритет: low - низкий, medium - средний, high - высокий"
+                  "archived": {
+                    "type": "boolean"
                   },
                   "ownerId": {
                     "type": "string"
@@ -2327,17 +2424,28 @@
                   "contactId": {
                     "type": "string"
                   },
-                  "minValue": {
+                  "priorityId": {
+                    "type": "string"
+                  },
+                  "pipelineId": {
+                    "type": "string"
+                  },
+                  "stageId": {
+                    "type": "string"
+                  },
+                  "minAmount": {
                     "type": "number"
                   },
-                  "maxValue": {
+                  "maxAmount": {
                     "type": "number"
                   },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  "closingDateFrom": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "closingDateTo": {
+                    "type": "string",
+                    "format": "date-time"
                   },
                   "page": {
                     "type": "integer",
@@ -2377,70 +2485,184 @@
                       "type": "string",
                       "description": "Уникальный идентификатор"
                     },
-                    "title": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    },
+                    "closingDate": {
                       "type": "string",
-                      "description": "Название"
+                      "format": "date-time"
+                    },
+                    "utm": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "medium": {
+                          "type": "string"
+                        },
+                        "campaign": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "UTM метки"
                     },
                     "description": {
                       "type": "string"
                     },
-                    "value": {
-                      "type": "number",
-                      "description": "Сумма"
+                    "externalId": {
+                      "type": "string"
                     },
-                    "currency": {
-                      "type": "string",
-                      "description": "Валюта"
+                    "archived": {
+                      "type": "boolean",
+                      "description": "Архивирована"
                     },
-                    "stage": {
-                      "type": "string",
-                      "enum": [
-                        "prospecting",
-                        "qualification",
-                        "proposal",
-                        "negotiation",
-                        "closed_won",
-                        "closed_lost"
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID контакта"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Имя контакта"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
                       ],
-                      "description": "Стадия"
+                      "description": "Контакт сделки",
+                      "nullable": true
+                    },
+                    "owner": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID владельца"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Имя владельца"
+                        },
+                        "email": {
+                          "type": "string",
+                          "description": "Email владельца"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email"
+                      ],
+                      "description": "Владелец сделки",
+                      "nullable": true
                     },
                     "priority": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "medium",
-                        "high"
-                      ],
-                      "description": "Приоритет"
-                    },
-                    "probability": {
-                      "type": "number",
-                      "description": "Вероятность закрытия"
-                    },
-                    "expectedCloseDate": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "actualCloseDate": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "contactId": {
-                      "type": "string"
-                    },
-                    "ownerId": {
-                      "type": "string",
-                      "description": "ID владельца"
-                    },
-                    "notes": {
-                      "type": "string"
-                    },
-                    "tags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID приоритета"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
                       },
-                      "description": "Теги"
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Приоритет сделки",
+                      "nullable": true
+                    },
+                    "pipeline": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID воронки"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название воронки"
+                        },
+                        "code": {
+                          "type": "string",
+                          "description": "Код воронки"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ],
+                      "description": "Воронка сделки",
+                      "nullable": true
+                    },
+                    "stage": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID этапа"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название этапа"
+                        },
+                        "color": {
+                          "type": "string",
+                          "description": "Цвет"
+                        },
+                        "order": {
+                          "type": "number",
+                          "description": "Порядок"
+                        },
+                        "probability": {
+                          "type": "number",
+                          "description": "Вероятность закрытия"
+                        },
+                        "isInitial": {
+                          "type": "boolean",
+                          "description": "Начальный этап"
+                        },
+                        "isFinal": {
+                          "type": "boolean",
+                          "description": "Финальный этап"
+                        },
+                        "isWon": {
+                          "type": "boolean",
+                          "description": "Успешное закрытие"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "color",
+                        "order",
+                        "probability",
+                        "isInitial",
+                        "isFinal",
+                        "isWon"
+                      ],
+                      "description": "Этап воронки",
+                      "nullable": true
                     },
                     "createdAt": {
                       "type": "string",
@@ -2455,14 +2677,7 @@
                   },
                   "required": [
                     "id",
-                    "title",
-                    "value",
-                    "currency",
-                    "stage",
-                    "priority",
-                    "probability",
-                    "ownerId",
-                    "tags",
+                    "archived",
                     "createdAt",
                     "updatedAt"
                   ],
@@ -2470,21 +2685,30 @@
                 },
                 "example": {
                   "id": "clx1234567890abcdef",
-                  "title": "Внедрение CRM системы",
+                  "name": "Внедрение CRM системы",
                   "description": "Проект по внедрению CRM для автоматизации продаж",
                   "amount": 1500000,
-                  "currency": "USD",
-                  "stage": "negotiation",
-                  "priority": "high",
-                  "probability": 70,
-                  "expectedCloseDate": "2024-03-15",
-                  "contactId": "clx0987654321fedcba",
-                  "ownerId": "clxowner123456789ab",
+                  "closingDate": "2024-03-15",
+                  "archived": false,
+                  "externalId": "EXT-001",
+                  "utm": {
+                    "source": "google",
+                    "medium": "cpc",
+                    "campaign": "spring_sale"
+                  },
                   "contact": {
                     "id": "clx0987654321fedcba",
-                    "firstName": "Иван",
-                    "lastName": "Петров",
-                    "company": "ООО \"Технологии\""
+                    "name": "Иван Петров"
+                  },
+                  "owner": {
+                    "id": "clxowner123456789ab",
+                    "name": "Менеджер",
+                    "email": "manager@example.com"
+                  },
+                  "priority": {
+                    "id": "clxpriority123",
+                    "name": "Высокий",
+                    "color": "#f97316"
                   },
                   "createdAt": "2024-01-20T14:00:00.000Z",
                   "updatedAt": "2024-02-01T09:30:00.000Z"
@@ -2531,204 +2755,77 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "closingDate": {
                     "type": "string",
-                    "description": "Название сделки",
-                    "minLength": 1
+                    "format": "date-time"
+                  },
+                  "utm": {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string"
+                      },
+                      "medium": {
+                        "type": "string"
+                      },
+                      "campaign": {
+                        "type": "string"
+                      },
+                      "term": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "description": "UTM метки"
                   },
                   "description": {
                     "type": "string"
                   },
-                  "value": {
-                    "type": "number",
-                    "description": "Сумма сделки",
-                    "minimum": 0
-                  },
-                  "currency": {
+                  "externalId": {
                     "type": "string"
                   },
-                  "stage": {
-                    "type": "string",
-                    "enum": [
-                      "prospecting",
-                      "qualification",
-                      "proposal",
-                      "negotiation",
-                      "closed_won",
-                      "closed_lost"
-                    ],
-                    "description": "Стадия сделки: prospecting - поиск, qualification - квалификация, proposal - предложение, negotiation - переговоры, closed_won - выиграна, closed_lost - проиграна"
-                  },
-                  "priority": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "medium",
-                      "high"
-                    ],
-                    "description": "Приоритет: low - низкий, medium - средний, high - высокий"
-                  },
-                  "probability": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 100
-                  },
-                  "expectedCloseDate": {
-                    "type": "string",
-                    "format": "date-time"
+                  "archived": {
+                    "type": "boolean",
+                    "default": false
                   },
                   "contactId": {
                     "type": "string"
                   },
-                  "notes": {
+                  "ownerId": {
                     "type": "string"
                   },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  "priorityId": {
+                    "type": "string"
+                  },
+                  "pipelineId": {
+                    "type": "string"
+                  },
+                  "stageId": {
+                    "type": "string"
                   }
                 },
-                "required": [
-                  "title",
-                  "value"
-                ],
                 "description": "Данные для создания сделки"
               },
               "example": {
-                "title": "Внедрение CRM системы",
+                "name": "Внедрение CRM системы",
                 "description": "Проект по внедрению CRM для автоматизации продаж",
                 "amount": 1500000,
-                "currency": "USD",
-                "stage": "qualification",
-                "priority": "high",
-                "probability": 30,
-                "expectedCloseDate": "2024-03-15",
-                "contactId": "clx0987654321fedcba"
+                "closingDate": "2024-03-15",
+                "contactId": "clx0987654321fedcba",
+                "priorityId": "clxpriority123"
               }
             }
           }
         }
-      }
-    },
-    "/api/opportunities/stats": {
-      "get": {
-        "summary": "Получить статистику по сделкам",
-        "description": "Возвращает агрегированную статистику: общая сумма, количество по стадиям, средняя вероятность.",
-        "tags": [
-          "Сделки"
-        ],
-        "responses": {
-          "200": {
-            "description": "Успешный ответ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalValue": {
-                      "type": "number",
-                      "description": "Общая сумма всех сделок"
-                    },
-                    "totalCount": {
-                      "type": "number",
-                      "description": "Общее количество сделок"
-                    },
-                    "byStage": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "type": "object",
-                        "properties": {
-                          "count": {
-                            "type": "number",
-                            "description": "Количество сделок"
-                          },
-                          "value": {
-                            "type": "number",
-                            "description": "Сумма сделок"
-                          }
-                        },
-                        "required": [
-                          "count",
-                          "value"
-                        ],
-                        "description": "Статистика по стадии"
-                      },
-                      "description": "Статистика по стадиям"
-                    },
-                    "avgProbability": {
-                      "type": "number",
-                      "description": "Средняя вероятность"
-                    }
-                  },
-                  "required": [
-                    "totalValue",
-                    "totalCount",
-                    "byStage",
-                    "avgProbability"
-                  ],
-                  "description": "Статистика по сделкам"
-                },
-                "example": {
-                  "totalAmount": 5500000,
-                  "averageProbability": 55,
-                  "countByStage": {
-                    "lead": 10,
-                    "qualification": 5,
-                    "proposal": 8,
-                    "negotiation": 3,
-                    "closed_won": 15,
-                    "closed_lost": 7
-                  },
-                  "totalCount": 48
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Не авторизован",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Внутренняя ошибка сервера",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "ownerId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID владельца для фильтрации"
-          }
-        ]
       }
     },
     "/api/opportunities/{id}": {
@@ -2750,70 +2847,184 @@
                       "type": "string",
                       "description": "Уникальный идентификатор"
                     },
-                    "title": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    },
+                    "closingDate": {
                       "type": "string",
-                      "description": "Название"
+                      "format": "date-time"
+                    },
+                    "utm": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "medium": {
+                          "type": "string"
+                        },
+                        "campaign": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "UTM метки"
                     },
                     "description": {
                       "type": "string"
                     },
-                    "value": {
-                      "type": "number",
-                      "description": "Сумма"
+                    "externalId": {
+                      "type": "string"
                     },
-                    "currency": {
-                      "type": "string",
-                      "description": "Валюта"
+                    "archived": {
+                      "type": "boolean",
+                      "description": "Архивирована"
                     },
-                    "stage": {
-                      "type": "string",
-                      "enum": [
-                        "prospecting",
-                        "qualification",
-                        "proposal",
-                        "negotiation",
-                        "closed_won",
-                        "closed_lost"
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID контакта"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Имя контакта"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
                       ],
-                      "description": "Стадия"
+                      "description": "Контакт сделки",
+                      "nullable": true
+                    },
+                    "owner": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID владельца"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Имя владельца"
+                        },
+                        "email": {
+                          "type": "string",
+                          "description": "Email владельца"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email"
+                      ],
+                      "description": "Владелец сделки",
+                      "nullable": true
                     },
                     "priority": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "medium",
-                        "high"
-                      ],
-                      "description": "Приоритет"
-                    },
-                    "probability": {
-                      "type": "number",
-                      "description": "Вероятность закрытия"
-                    },
-                    "expectedCloseDate": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "actualCloseDate": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "contactId": {
-                      "type": "string"
-                    },
-                    "ownerId": {
-                      "type": "string",
-                      "description": "ID владельца"
-                    },
-                    "notes": {
-                      "type": "string"
-                    },
-                    "tags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID приоритета"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
                       },
-                      "description": "Теги"
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Приоритет сделки",
+                      "nullable": true
+                    },
+                    "pipeline": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID воронки"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название воронки"
+                        },
+                        "code": {
+                          "type": "string",
+                          "description": "Код воронки"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ],
+                      "description": "Воронка сделки",
+                      "nullable": true
+                    },
+                    "stage": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID этапа"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название этапа"
+                        },
+                        "color": {
+                          "type": "string",
+                          "description": "Цвет"
+                        },
+                        "order": {
+                          "type": "number",
+                          "description": "Порядок"
+                        },
+                        "probability": {
+                          "type": "number",
+                          "description": "Вероятность закрытия"
+                        },
+                        "isInitial": {
+                          "type": "boolean",
+                          "description": "Начальный этап"
+                        },
+                        "isFinal": {
+                          "type": "boolean",
+                          "description": "Финальный этап"
+                        },
+                        "isWon": {
+                          "type": "boolean",
+                          "description": "Успешное закрытие"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "color",
+                        "order",
+                        "probability",
+                        "isInitial",
+                        "isFinal",
+                        "isWon"
+                      ],
+                      "description": "Этап воронки",
+                      "nullable": true
                     },
                     "createdAt": {
                       "type": "string",
@@ -2828,14 +3039,7 @@
                   },
                   "required": [
                     "id",
-                    "title",
-                    "value",
-                    "currency",
-                    "stage",
-                    "priority",
-                    "probability",
-                    "ownerId",
-                    "tags",
+                    "archived",
                     "createdAt",
                     "updatedAt"
                   ],
@@ -2843,21 +3047,30 @@
                 },
                 "example": {
                   "id": "clx1234567890abcdef",
-                  "title": "Внедрение CRM системы",
+                  "name": "Внедрение CRM системы",
                   "description": "Проект по внедрению CRM для автоматизации продаж",
                   "amount": 1500000,
-                  "currency": "USD",
-                  "stage": "negotiation",
-                  "priority": "high",
-                  "probability": 70,
-                  "expectedCloseDate": "2024-03-15",
-                  "contactId": "clx0987654321fedcba",
-                  "ownerId": "clxowner123456789ab",
+                  "closingDate": "2024-03-15",
+                  "archived": false,
+                  "externalId": "EXT-001",
+                  "utm": {
+                    "source": "google",
+                    "medium": "cpc",
+                    "campaign": "spring_sale"
+                  },
                   "contact": {
                     "id": "clx0987654321fedcba",
-                    "firstName": "Иван",
-                    "lastName": "Петров",
-                    "company": "ООО \"Технологии\""
+                    "name": "Иван Петров"
+                  },
+                  "owner": {
+                    "id": "clxowner123456789ab",
+                    "name": "Менеджер",
+                    "email": "manager@example.com"
+                  },
+                  "priority": {
+                    "id": "clxpriority123",
+                    "name": "Высокий",
+                    "color": "#f97316"
                   },
                   "createdAt": "2024-01-20T14:00:00.000Z",
                   "updatedAt": "2024-02-01T09:30:00.000Z"
@@ -2927,70 +3140,184 @@
                       "type": "string",
                       "description": "Уникальный идентификатор"
                     },
-                    "title": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    },
+                    "closingDate": {
                       "type": "string",
-                      "description": "Название"
+                      "format": "date-time"
+                    },
+                    "utm": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "medium": {
+                          "type": "string"
+                        },
+                        "campaign": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "UTM метки"
                     },
                     "description": {
                       "type": "string"
                     },
-                    "value": {
-                      "type": "number",
-                      "description": "Сумма"
+                    "externalId": {
+                      "type": "string"
                     },
-                    "currency": {
-                      "type": "string",
-                      "description": "Валюта"
+                    "archived": {
+                      "type": "boolean",
+                      "description": "Архивирована"
                     },
-                    "stage": {
-                      "type": "string",
-                      "enum": [
-                        "prospecting",
-                        "qualification",
-                        "proposal",
-                        "negotiation",
-                        "closed_won",
-                        "closed_lost"
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID контакта"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Имя контакта"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
                       ],
-                      "description": "Стадия"
+                      "description": "Контакт сделки",
+                      "nullable": true
+                    },
+                    "owner": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID владельца"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Имя владельца"
+                        },
+                        "email": {
+                          "type": "string",
+                          "description": "Email владельца"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email"
+                      ],
+                      "description": "Владелец сделки",
+                      "nullable": true
                     },
                     "priority": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "medium",
-                        "high"
-                      ],
-                      "description": "Приоритет"
-                    },
-                    "probability": {
-                      "type": "number",
-                      "description": "Вероятность закрытия"
-                    },
-                    "expectedCloseDate": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "actualCloseDate": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "contactId": {
-                      "type": "string"
-                    },
-                    "ownerId": {
-                      "type": "string",
-                      "description": "ID владельца"
-                    },
-                    "notes": {
-                      "type": "string"
-                    },
-                    "tags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID приоритета"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
                       },
-                      "description": "Теги"
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Приоритет сделки",
+                      "nullable": true
+                    },
+                    "pipeline": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID воронки"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название воронки"
+                        },
+                        "code": {
+                          "type": "string",
+                          "description": "Код воронки"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "code"
+                      ],
+                      "description": "Воронка сделки",
+                      "nullable": true
+                    },
+                    "stage": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID этапа"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название этапа"
+                        },
+                        "color": {
+                          "type": "string",
+                          "description": "Цвет"
+                        },
+                        "order": {
+                          "type": "number",
+                          "description": "Порядок"
+                        },
+                        "probability": {
+                          "type": "number",
+                          "description": "Вероятность закрытия"
+                        },
+                        "isInitial": {
+                          "type": "boolean",
+                          "description": "Начальный этап"
+                        },
+                        "isFinal": {
+                          "type": "boolean",
+                          "description": "Финальный этап"
+                        },
+                        "isWon": {
+                          "type": "boolean",
+                          "description": "Успешное закрытие"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "color",
+                        "order",
+                        "probability",
+                        "isInitial",
+                        "isFinal",
+                        "isWon"
+                      ],
+                      "description": "Этап воронки",
+                      "nullable": true
                     },
                     "createdAt": {
                       "type": "string",
@@ -3005,14 +3332,7 @@
                   },
                   "required": [
                     "id",
-                    "title",
-                    "value",
-                    "currency",
-                    "stage",
-                    "priority",
-                    "probability",
-                    "ownerId",
-                    "tags",
+                    "archived",
                     "createdAt",
                     "updatedAt"
                   ],
@@ -3020,21 +3340,30 @@
                 },
                 "example": {
                   "id": "clx1234567890abcdef",
-                  "title": "Внедрение CRM системы",
+                  "name": "Обновлённое название",
                   "description": "Проект по внедрению CRM для автоматизации продаж",
                   "amount": 1800000,
-                  "currency": "USD",
-                  "stage": "negotiation",
-                  "priority": "high",
-                  "probability": 70,
-                  "expectedCloseDate": "2024-03-15",
-                  "contactId": "clx0987654321fedcba",
-                  "ownerId": "clxowner123456789ab",
+                  "closingDate": "2024-03-15",
+                  "archived": false,
+                  "externalId": "EXT-001",
+                  "utm": {
+                    "source": "google",
+                    "medium": "cpc",
+                    "campaign": "spring_sale"
+                  },
                   "contact": {
                     "id": "clx0987654321fedcba",
-                    "firstName": "Иван",
-                    "lastName": "Петров",
-                    "company": "ООО \"Технологии\""
+                    "name": "Иван Петров"
+                  },
+                  "owner": {
+                    "id": "clxowner123456789ab",
+                    "name": "Менеджер",
+                    "email": "manager@example.com"
+                  },
+                  "priority": {
+                    "id": "clxpriority123",
+                    "name": "Высокий",
+                    "color": "#f97316"
                   },
                   "createdAt": "2024-01-20T14:00:00.000Z",
                   "updatedAt": "2024-02-01T09:30:00.000Z"
@@ -3092,72 +3421,78 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": {
+                  "name": {
                     "type": "string",
-                    "minLength": 1
+                    "nullable": true
                   },
-                  "description": {
-                    "type": "string"
-                  },
-                  "value": {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  "currency": {
-                    "type": "string"
-                  },
-                  "stage": {
-                    "type": "string",
-                    "enum": [
-                      "prospecting",
-                      "qualification",
-                      "proposal",
-                      "negotiation",
-                      "closed_won",
-                      "closed_lost"
-                    ],
-                    "description": "Стадия сделки: prospecting - поиск, qualification - квалификация, proposal - предложение, negotiation - переговоры, closed_won - выиграна, closed_lost - проиграна"
-                  },
-                  "priority": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "medium",
-                      "high"
-                    ],
-                    "description": "Приоритет: low - низкий, medium - средний, high - высокий"
-                  },
-                  "probability": {
+                  "amount": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 100
+                    "nullable": true
                   },
-                  "expectedCloseDate": {
+                  "closingDate": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "nullable": true
                   },
-                  "actualCloseDate": {
+                  "utm": {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string"
+                      },
+                      "medium": {
+                        "type": "string"
+                      },
+                      "campaign": {
+                        "type": "string"
+                      },
+                      "term": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "description": "UTM метки",
+                    "nullable": true
+                  },
+                  "description": {
                     "type": "string",
-                    "format": "date-time"
+                    "nullable": true
+                  },
+                  "externalId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "archived": {
+                    "type": "boolean"
                   },
                   "contactId": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
-                  "notes": {
-                    "type": "string"
+                  "ownerId": {
+                    "type": "string",
+                    "nullable": true
                   },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  "priorityId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "pipelineId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "stageId": {
+                    "type": "string",
+                    "nullable": true
                   }
                 },
                 "description": "Данные для обновления сделки"
               },
               "example": {
-                "stage": "negotiation",
-                "probability": 70,
+                "name": "Обновлённое название",
                 "amount": 1800000
               }
             }
@@ -4714,6 +5049,1730 @@
           }
         ]
       }
+    },
+    "/api/interactions/search": {
+      "post": {
+        "summary": "Поиск взаимодействий",
+        "description": "Возвращает список взаимодействий с пагинацией и фильтрацией.\n\n**Фильтры:**\n- `contactId` — фильтр по контакту\n- `channelId` — фильтр по каналу\n- `opportunityId` — фильтр по сделке\n- `direction` — направление (inbound/outbound)\n- `status` — статус (pending/sent/delivered/read/failed)\n- `dateFrom`, `dateTo` — диапазон дат\n\n**Пагинация:**\n- `limit` — количество записей (по умолчанию 50, макс. 100)\n- `offset` — смещение",
+        "tags": [
+          "Взаимодействия"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "channelId": {
+                            "type": "string",
+                            "description": "ID канала"
+                          },
+                          "contactId": {
+                            "type": "string",
+                            "description": "ID контакта"
+                          },
+                          "opportunityId": {
+                            "type": "string"
+                          },
+                          "direction": {
+                            "type": "string",
+                            "enum": [
+                              "inbound",
+                              "outbound"
+                            ],
+                            "description": "Направление"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "sent",
+                              "delivered",
+                              "read",
+                              "failed"
+                            ],
+                            "description": "Статус"
+                          },
+                          "subject": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string",
+                            "description": "Содержимое"
+                          },
+                          "duration": {
+                            "type": "number"
+                          },
+                          "recordingUrl": {
+                            "type": "string"
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "description": "Метаданные"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "icon": {
+                                "type": "string"
+                              },
+                              "color": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "name",
+                              "icon",
+                              "color"
+                            ],
+                            "description": "Канал (embedded)"
+                          },
+                          "contact": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "description": "Контакт (embedded)"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "channelId",
+                          "contactId",
+                          "direction",
+                          "status",
+                          "content",
+                          "metadata",
+                          "createdAt"
+                        ],
+                        "description": "Взаимодействие"
+                      },
+                      "description": "Список взаимодействий"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    }
+                  },
+                  "required": [
+                    "interactions",
+                    "total"
+                  ],
+                  "description": "Список взаимодействий"
+                },
+                "example": {
+                  "interactions": [
+                    {
+                      "id": "clx1234567890abcdef",
+                      "channelId": "clx_channel_001",
+                      "contactId": "clx_contact_001",
+                      "opportunityId": "clx_opportunity_001",
+                      "direction": "inbound",
+                      "status": "delivered",
+                      "subject": "Запрос информации",
+                      "content": "Здравствуйте! Интересует ваш продукт.",
+                      "duration": null,
+                      "recordingUrl": null,
+                      "metadata": {},
+                      "createdAt": "2024-01-15T10:30:00.000Z",
+                      "createdBy": "clx_user_001",
+                      "channel": {
+                        "id": "clx_channel_001",
+                        "code": "email",
+                        "name": "Email",
+                        "icon": "mail",
+                        "color": "#3b82f6"
+                      },
+                      "contact": {
+                        "id": "clx_contact_001",
+                        "name": "Иван Петров"
+                      }
+                    }
+                  ],
+                  "total": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string"
+                  },
+                  "channelId": {
+                    "type": "string"
+                  },
+                  "opportunityId": {
+                    "type": "string"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "inbound",
+                      "outbound"
+                    ],
+                    "description": "Направление: inbound - входящее, outbound - исходящее"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "sent",
+                      "delivered",
+                      "read",
+                      "failed"
+                    ],
+                    "description": "Статус: pending - ожидает, sent - отправлено, delivered - доставлено, read - прочитано, failed - ошибка"
+                  },
+                  "dateFrom": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "dateTo": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0
+                  }
+                },
+                "description": "Фильтры для поиска взаимодействий"
+              },
+              "example": {
+                "contactId": "clx_contact_001",
+                "channelId": "clx_channel_001",
+                "direction": "inbound",
+                "limit": 50,
+                "offset": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interactions": {
+      "post": {
+        "summary": "Создать взаимодействие",
+        "description": "Создаёт новое взаимодействие (сообщение, звонок и т.д.).\n\n**Используется для:**\n- Входящих webhook от внешних систем (Telegram, WhatsApp и т.д.)\n- Отправки исходящих сообщений из CRM\n\n**Обязательные поля:**\n- `channelId` — ID канала коммуникации\n- `contactId` — ID контакта\n- `direction` — направление (inbound для входящих, outbound для исходящих)\n- `content` — текст сообщения\n\n**Опциональные поля:**\n- `opportunityId` — привязка к сделке\n- `status` — статус доставки (по умолчанию pending)\n- `subject` — тема (для email)\n- `duration` — длительность в секундах (для звонков)\n- `recordingUrl` — URL записи (для звонков)\n- `metadata` — дополнительные данные",
+        "tags": [
+          "Взаимодействия"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "channelId": {
+                      "type": "string",
+                      "description": "ID канала"
+                    },
+                    "contactId": {
+                      "type": "string",
+                      "description": "ID контакта"
+                    },
+                    "opportunityId": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "inbound",
+                        "outbound"
+                      ],
+                      "description": "Направление"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "sent",
+                        "delivered",
+                        "read",
+                        "failed"
+                      ],
+                      "description": "Статус"
+                    },
+                    "subject": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string",
+                      "description": "Содержимое"
+                    },
+                    "duration": {
+                      "type": "number"
+                    },
+                    "recordingUrl": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "description": "Метаданные"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "name",
+                        "icon",
+                        "color"
+                      ],
+                      "description": "Канал (embedded)"
+                    },
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Контакт (embedded)"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "channelId",
+                    "contactId",
+                    "direction",
+                    "status",
+                    "content",
+                    "metadata",
+                    "createdAt"
+                  ],
+                  "description": "Взаимодействие"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "channelId": "clx_channel_001",
+                  "contactId": "clx_contact_001",
+                  "opportunityId": "clx_opportunity_001",
+                  "direction": "inbound",
+                  "status": "delivered",
+                  "subject": "Запрос информации",
+                  "content": "Здравствуйте! Интересует ваш продукт.",
+                  "duration": null,
+                  "recordingUrl": null,
+                  "metadata": {},
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "createdBy": "clx_user_001",
+                  "channel": {
+                    "id": "clx_channel_001",
+                    "code": "email",
+                    "name": "Email",
+                    "icon": "mail",
+                    "color": "#3b82f6"
+                  },
+                  "contact": {
+                    "id": "clx_contact_001",
+                    "name": "Иван Петров"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channelId": {
+                    "type": "string",
+                    "description": "ID канала коммуникации",
+                    "minLength": 1
+                  },
+                  "contactId": {
+                    "type": "string",
+                    "description": "ID контакта",
+                    "minLength": 1
+                  },
+                  "opportunityId": {
+                    "type": "string"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "inbound",
+                      "outbound"
+                    ],
+                    "description": "Направление взаимодействия"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "sent",
+                      "delivered",
+                      "read",
+                      "failed"
+                    ],
+                    "description": "Статус: pending - ожидает, sent - отправлено, delivered - доставлено, read - прочитано, failed - ошибка",
+                    "default": "pending"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Содержимое сообщения",
+                    "minLength": 1
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "recordingUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "default": {}
+                  }
+                },
+                "required": [
+                  "channelId",
+                  "contactId",
+                  "direction",
+                  "content"
+                ],
+                "description": "Данные для создания взаимодействия"
+              },
+              "example": {
+                "channelId": "clx_channel_001",
+                "contactId": "clx_contact_001",
+                "direction": "inbound",
+                "status": "delivered",
+                "content": "Здравствуйте! Интересует ваш продукт.",
+                "metadata": {
+                  "source": "webhook",
+                  "externalId": "ext_12345"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interactions/{id}": {
+      "get": {
+        "summary": "Получить взаимодействие по ID",
+        "description": "Возвращает детальную информацию о взаимодействии, включая данные канала и контакта.",
+        "tags": [
+          "Взаимодействия"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "channelId": {
+                      "type": "string",
+                      "description": "ID канала"
+                    },
+                    "contactId": {
+                      "type": "string",
+                      "description": "ID контакта"
+                    },
+                    "opportunityId": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "inbound",
+                        "outbound"
+                      ],
+                      "description": "Направление"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "sent",
+                        "delivered",
+                        "read",
+                        "failed"
+                      ],
+                      "description": "Статус"
+                    },
+                    "subject": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string",
+                      "description": "Содержимое"
+                    },
+                    "duration": {
+                      "type": "number"
+                    },
+                    "recordingUrl": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "description": "Метаданные"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "name",
+                        "icon",
+                        "color"
+                      ],
+                      "description": "Канал (embedded)"
+                    },
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Контакт (embedded)"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "channelId",
+                    "contactId",
+                    "direction",
+                    "status",
+                    "content",
+                    "metadata",
+                    "createdAt"
+                  ],
+                  "description": "Взаимодействие"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "channelId": "clx_channel_001",
+                  "contactId": "clx_contact_001",
+                  "opportunityId": "clx_opportunity_001",
+                  "direction": "inbound",
+                  "status": "delivered",
+                  "subject": "Запрос информации",
+                  "content": "Здравствуйте! Интересует ваш продукт.",
+                  "duration": null,
+                  "recordingUrl": null,
+                  "metadata": {},
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "createdBy": "clx_user_001",
+                  "channel": {
+                    "id": "clx_channel_001",
+                    "code": "email",
+                    "name": "Email",
+                    "icon": "mail",
+                    "color": "#3b82f6"
+                  },
+                  "contact": {
+                    "id": "clx_contact_001",
+                    "name": "Иван Петров"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID взаимодействия"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Обновить взаимодействие",
+        "description": "Частично обновляет данные взаимодействия.\n\n**Типичные сценарии:**\n- Обновление статуса доставки (pending → sent → delivered → read)\n- Добавление записи звонка после его завершения\n- Обновление метаданных",
+        "tags": [
+          "Взаимодействия"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "channelId": {
+                      "type": "string",
+                      "description": "ID канала"
+                    },
+                    "contactId": {
+                      "type": "string",
+                      "description": "ID контакта"
+                    },
+                    "opportunityId": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "inbound",
+                        "outbound"
+                      ],
+                      "description": "Направление"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "sent",
+                        "delivered",
+                        "read",
+                        "failed"
+                      ],
+                      "description": "Статус"
+                    },
+                    "subject": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string",
+                      "description": "Содержимое"
+                    },
+                    "duration": {
+                      "type": "number"
+                    },
+                    "recordingUrl": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "description": "Метаданные"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "name",
+                        "icon",
+                        "color"
+                      ],
+                      "description": "Канал (embedded)"
+                    },
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Контакт (embedded)"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "channelId",
+                    "contactId",
+                    "direction",
+                    "status",
+                    "content",
+                    "metadata",
+                    "createdAt"
+                  ],
+                  "description": "Взаимодействие"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "channelId": "clx_channel_001",
+                  "contactId": "clx_contact_001",
+                  "opportunityId": "clx_opportunity_001",
+                  "direction": "inbound",
+                  "status": "read",
+                  "subject": "Запрос информации",
+                  "content": "Здравствуйте! Интересует ваш продукт.",
+                  "duration": null,
+                  "recordingUrl": null,
+                  "metadata": {},
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "createdBy": "clx_user_001",
+                  "channel": {
+                    "id": "clx_channel_001",
+                    "code": "email",
+                    "name": "Email",
+                    "icon": "mail",
+                    "color": "#3b82f6"
+                  },
+                  "contact": {
+                    "id": "clx_contact_001",
+                    "name": "Иван Петров"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID взаимодействия"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "sent",
+                      "delivered",
+                      "read",
+                      "failed"
+                    ],
+                    "description": "Статус: pending - ожидает, sent - отправлено, delivered - доставлено, read - прочитано, failed - ошибка"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "recordingUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "description": "Данные для обновления взаимодействия"
+              },
+              "example": {
+                "status": "read"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить взаимодействие",
+        "description": "Полностью удаляет взаимодействие из системы.",
+        "tags": [
+          "Взаимодействия"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID взаимодействия"
+          }
+        ]
+      }
+    },
+    "/api/channels/search": {
+      "post": {
+        "summary": "Получить список каналов",
+        "description": "Возвращает список всех каналов коммуникации.\n\n**Каналы коммуникации** — это способы связи с контактами:\n- Email\n- Телефон (звонки)\n- SMS\n- Мессенджеры (Telegram, WhatsApp, Viber)\n- Социальные сети (Facebook, Instagram, LinkedIn)\n- Веб-чат\n- Видеоконференции (Zoom, Google Meet)\n\nКаждый канал имеет:\n- `code` — уникальный код для идентификации\n- `icon` — название иконки из набора Lucide\n- `color` — цвет для отображения в интерфейсе",
+        "tags": [
+          "Каналы"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "code": {
+                            "type": "string",
+                            "description": "Код канала"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Название"
+                          },
+                          "icon": {
+                            "type": "string",
+                            "description": "Иконка"
+                          },
+                          "color": {
+                            "type": "string",
+                            "description": "Цвет"
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "Активен ли канал"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата обновления"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name",
+                          "icon",
+                          "color",
+                          "isActive",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "description": "Канал коммуникации"
+                      },
+                      "description": "Список каналов"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    }
+                  },
+                  "required": [
+                    "channels",
+                    "total"
+                  ],
+                  "description": "Список каналов"
+                },
+                "example": {
+                  "channels": [
+                    {
+                      "id": "clx_channel_001",
+                      "code": "telegram",
+                      "name": "Telegram",
+                      "icon": "send",
+                      "color": "#0088cc",
+                      "isActive": true,
+                      "createdAt": "2024-01-15T10:30:00.000Z",
+                      "updatedAt": "2024-01-15T10:30:00.000Z"
+                    },
+                    {
+                      "id": "clx_channel_002",
+                      "code": "email",
+                      "name": "Email",
+                      "icon": "mail",
+                      "color": "#3b82f6",
+                      "isActive": true,
+                      "createdAt": "2024-01-15T10:30:00.000Z",
+                      "updatedAt": "2024-01-15T10:30:00.000Z"
+                    },
+                    {
+                      "id": "clx_channel_003",
+                      "code": "phone",
+                      "name": "Телефон",
+                      "icon": "phone",
+                      "color": "#22c55e",
+                      "isActive": true,
+                      "createdAt": "2024-01-15T10:30:00.000Z",
+                      "updatedAt": "2024-01-15T10:30:00.000Z"
+                    }
+                  ],
+                  "total": 3
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channels": {
+      "post": {
+        "summary": "Создать канал",
+        "description": "Создаёт новый канал коммуникации.\n\n**Правила для кода:**\n- Только латинские буквы в нижнем регистре, цифры и символ `_`\n- Должен начинаться с буквы\n- Уникальный в системе\n\n**Иконки:**\nИспользуются иконки из библиотеки [Lucide](https://lucide.dev/icons/).\nПопулярные: mail, phone, send, message-circle, video, globe.",
+        "tags": [
+          "Каналы"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Код канала"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "icon": {
+                      "type": "string",
+                      "description": "Иконка"
+                    },
+                    "color": {
+                      "type": "string",
+                      "description": "Цвет"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли канал"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "icon",
+                    "color",
+                    "isActive",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Канал коммуникации"
+                },
+                "example": {
+                  "id": "clx_channel_001",
+                  "code": "telegram",
+                  "name": "Telegram",
+                  "icon": "send",
+                  "color": "#0088cc",
+                  "isActive": true,
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "updatedAt": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Уникальный код канала",
+                    "minLength": 1,
+                    "maxLength": 50,
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Название канала",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "default": "message-circle"
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$",
+                    "default": "#6b7280"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "description": "Данные для создания канала"
+              },
+              "example": {
+                "code": "telegram",
+                "name": "Telegram",
+                "icon": "send",
+                "color": "#0088cc",
+                "isActive": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channels/{id}": {
+      "get": {
+        "summary": "Получить канал по ID",
+        "description": "Возвращает информацию о канале коммуникации.",
+        "tags": [
+          "Каналы"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Код канала"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "icon": {
+                      "type": "string",
+                      "description": "Иконка"
+                    },
+                    "color": {
+                      "type": "string",
+                      "description": "Цвет"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли канал"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "icon",
+                    "color",
+                    "isActive",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Канал коммуникации"
+                },
+                "example": {
+                  "id": "clx_channel_001",
+                  "code": "telegram",
+                  "name": "Telegram",
+                  "icon": "send",
+                  "color": "#0088cc",
+                  "isActive": true,
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "updatedAt": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID канала"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Обновить канал",
+        "description": "Частично обновляет данные канала. Код канала изменить нельзя.",
+        "tags": [
+          "Каналы"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Код канала"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "icon": {
+                      "type": "string",
+                      "description": "Иконка"
+                    },
+                    "color": {
+                      "type": "string",
+                      "description": "Цвет"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли канал"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "icon",
+                    "color",
+                    "isActive",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Канал коммуникации"
+                },
+                "example": {
+                  "id": "clx_channel_001",
+                  "code": "telegram",
+                  "name": "Telegram Bot",
+                  "icon": "send",
+                  "color": "#229ED9",
+                  "isActive": true,
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "updatedAt": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID канала"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 50
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                },
+                "description": "Данные для обновления канала"
+              },
+              "example": {
+                "name": "Telegram Bot",
+                "color": "#229ED9"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить канал",
+        "description": "Удаляет канал коммуникации.\n\n**Внимание:** При удалении канала все связанные взаимодействия сохраняются,\nно будут отображаться без информации о канале.",
+        "tags": [
+          "Каналы"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID канала"
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -4750,6 +6809,12 @@
     },
     {
       "name": "Элементы словаря"
+    },
+    {
+      "name": "Взаимодействия"
+    },
+    {
+      "name": "Каналы"
     }
   ]
 }

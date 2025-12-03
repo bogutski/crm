@@ -124,12 +124,12 @@ export function ResizablePanel({
   return (
     <div
       ref={panelRef}
-      className={`relative flex-shrink-0 flex ${className}`}
+      className={`relative flex-shrink-0 flex h-full ${className}`}
       style={{ width }}
     >
       {/* Ручка для изменения размера */}
       <div
-        className={`absolute top-0 bottom-0 w-4 cursor-col-resize z-10 group ${
+        className={`absolute top-0 bottom-0 w-4 cursor-col-resize z-20 group ${
           resizeFrom === 'left' ? '-left-2' : '-right-2'
         }`}
         onMouseDown={handleMouseDown}
@@ -157,7 +157,7 @@ export function ResizablePanel({
       </div>
 
       {/* Содержимое панели */}
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">{children}</div>
     </div>
   );
 }

@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Pencil, ChevronLeft, ChevronRight, Trash2, Eye } from 'lucide-react';
+import { Pencil, ChevronLeft, ChevronRight, Trash2, ScanEye } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { OpportunityForm } from './OpportunityForm';
+import { OpportunityPreviewPanel } from './OpportunityPreviewPanel';
+import { ContactPreviewPanel } from '@/app/contacts/components/ContactPreviewPanel';
 import { Badge } from '@/components/ui/Badge';
 
 interface Priority {
@@ -73,6 +75,8 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
   const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null);
   const [deletingOpportunity, setDeletingOpportunity] = useState<Opportunity | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [previewOpportunityId, setPreviewOpportunityId] = useState<string | null>(null);
+  const [previewContactId, setPreviewContactId] = useState<string | null>(null);
 
   const currentPage = parseInt(searchParams.get('page') || String(initialPage), 10);
   const currentSearch = searchParams.get('search') || '';
@@ -303,12 +307,12 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
                   className="border-b border-zinc-200 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                 >
                   <td className="px-4 py-1.5">
-                    <Link
-                      href={`/opportunities/${opportunity.id}`}
-                      className="text-sm font-medium text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                    <button
+                      onClick={() => setPreviewOpportunityId(opportunity.id)}
+                      className="text-sm font-medium text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400 hover:underline text-left"
                     >
                       {opportunity.name || 'Без названия'}
-                    </Link>
+                    </button>
                   </td>
                   <td className="px-4 py-1.5">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -349,12 +353,12 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
                   </td>
                   <td className="px-4 py-1.5">
                     {opportunity.contact ? (
-                      <Link
-                        href={`/contacts/${opportunity.contact.id}`}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      <button
+                        onClick={() => setPreviewContactId(opportunity.contact!.id)}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                       >
                         {opportunity.contact.name}
-                      </Link>
+                      </button>
                     ) : (
                       <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
                     )}
@@ -371,6 +375,13 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
                   </td>
                   <td className="px-4 py-1.5">
                     <div className="flex items-center gap-1">
+                      <Link
+                        href={`/opportunities/${opportunity.id}`}
+                        className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
+                        title="Открыть страницу"
+                      >
+                        <ScanEye className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => handleEditClick(opportunity)}
                         className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
@@ -471,6 +482,21 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
         isLoading={isDeleting}
+      />
+
+      {/* Opportunity Preview Panel */}
+      <OpportunityPreviewPanel
+        opportunityId={previewOpportunityId}
+        isOpen={!!previewOpportunityId}
+        onClose={() => setPreviewOpportunityId(null)}
+        onDeleted={() => fetchOpportunities(currentPage, currentSearch)}
+      />
+
+      {/* Contact Preview Panel */}
+      <ContactPreviewPanel
+        contactId={previewContactId}
+        isOpen={!!previewContactId}
+        onClose={() => setPreviewContactId(null)}
       />
     </>
   );
