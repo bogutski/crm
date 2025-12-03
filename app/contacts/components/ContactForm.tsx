@@ -1,17 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Trash2, Star } from 'lucide-react';
+import { contactFormSchema, type ContactFormData } from '@/modules/contact/validation';
+import { ColorSelect, type ColorOption } from '@/components/ui/ColorSelect';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { Button } from '@/components/ui/Button';
 
-interface EmailField {
-  address: string;
+interface ContactType {
+  id: string;
+  name: string;
+  color?: string;
 }
 
-interface PhoneField {
-  e164: string;
-  international: string;
-  country: string;
-  type: 'MOBILE' | 'FIXED_LINE' | 'UNKNOWN';
-  isPrimary: boolean;
+interface Contact {
+  id: string;
+  name: string;
+  emails: { address: string }[];
+  phones: {
+    e164: string;
+    international: string;
+    country: string;
+    type: 'MOBILE' | 'FIXED_LINE' | 'UNKNOWN';
+    isPrimary: boolean;
+  }[];
+  company?: string;
+  position?: string;
+  notes?: string;
+  contactType?: ContactType | null;
+  source?: string;
 }
 
 interface DictionaryItem {
@@ -22,33 +41,77 @@ interface DictionaryItem {
 }
 
 interface ContactFormProps {
+  contact?: Contact;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const getDefaultValues = (contact?: Contact): ContactFormData => {
+  if (contact) {
+    return {
+      name: contact.name,
+      emails: contact.emails.length > 0
+        ? contact.emails.map(e => ({ address: e.address }))
+        : [{ address: '' }],
+      phones: contact.phones.length > 0
+        ? contact.phones.map(p => ({ number: p.international || p.e164, isPrimary: p.isPrimary }))
+        : [{ number: '', isPrimary: true }],
+      company: contact.company || '',
+      position: contact.position || '',
+      notes: contact.notes || '',
+      contactType: contact.contactType?.id || '',
+      source: contact.source || '',
+    };
+  }
 
-  const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
-  const [position, setPosition] = useState('');
-  const [notes, setNotes] = useState('');
+  return {
+    name: '',
+    emails: [{ address: '' }],
+    phones: [{ number: '', isPrimary: true }],
+    company: '',
+    position: '',
+    notes: '',
+    contactType: '',
+    source: '',
+  };
+};
 
-  const [contactType, setContactType] = useState('');
-  const [source, setSource] = useState('');
-
-  const [emails, setEmails] = useState<EmailField[]>([{ address: '' }]);
-  const [phones, setPhones] = useState<PhoneField[]>([
-    { e164: '', international: '', country: 'RU', type: 'MOBILE', isPrimary: true },
-  ]);
+export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) {
+  const isEditMode = Boolean(contact);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Словари
   const [contactTypes, setContactTypes] = useState<DictionaryItem[]>([]);
   const [sources, setSources] = useState<DictionaryItem[]>([]);
 
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: getDefaultValues(contact),
+  });
+
+  const {
+    fields: emailFields,
+    append: appendEmail,
+    remove: removeEmail,
+  } = useFieldArray({ control, name: 'emails' });
+
+  const {
+    fields: phoneFields,
+    append: appendPhone,
+    remove: removePhone,
+  } = useFieldArray({ control, name: 'phones' });
+
+  const phones = watch('phones');
+
   useEffect(() => {
-    // Загрузка словарей
     Promise.all([
       fetch('/api/dictionaries/contact_types/items').then(r => r.ok ? r.json() : { items: [] }),
       fetch('/api/dictionaries/sources/items').then(r => r.ok ? r.json() : { items: [] }),
@@ -58,125 +121,118 @@ export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
     });
   }, []);
 
-  const addEmail = () => {
-    setEmails([...emails, { address: '' }]);
-  };
-
-  const removeEmail = (index: number) => {
-    if (emails.length > 1) {
-      setEmails(emails.filter((_, i) => i !== index));
+  // Обновляем форму при изменении контакта (для режима редактирования)
+  useEffect(() => {
+    if (contact) {
+      reset(getDefaultValues(contact));
     }
-  };
-
-  const updateEmail = (index: number, value: string) => {
-    const updated = [...emails];
-    updated[index].address = value;
-    setEmails(updated);
-  };
-
-  const addPhone = () => {
-    setPhones([
-      ...phones,
-      { e164: '', international: '', country: 'RU', type: 'MOBILE', isPrimary: false },
-    ]);
-  };
-
-  const removePhone = (index: number) => {
-    if (phones.length > 1) {
-      setPhones(phones.filter((_, i) => i !== index));
-    }
-  };
-
-  const updatePhone = (index: number, value: string) => {
-    const updated = [...phones];
-    // Simple formatting - store as entered for now
-    // In production, use libphonenumber-js to parse and format
-    const cleaned = value.replace(/[^\d+\s\-()]/g, '');
-    updated[index].e164 = cleaned.replace(/[\s\-()]/g, '');
-    updated[index].international = cleaned;
-    setPhones(updated);
-  };
+  }, [contact, reset]);
 
   const setPhonePrimary = (index: number) => {
-    const updated = phones.map((phone, i) => ({
-      ...phone,
-      isPrimary: i === index,
-    }));
-    setPhones(updated);
+    phones.forEach((_, i) => {
+      setValue(`phones.${i}.isPrimary`, i === index);
+    });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  const onSubmit = async (data: ContactFormData) => {
+    setSubmitError(null);
 
     try {
-      // Filter out empty emails and phones
-      const validEmails = emails
-        .filter((email) => email.address.trim())
-        .map((email) => ({ address: email.address.trim() }));
+      // Фильтруем пустые emails и phones
+      const validEmails = data.emails
+        .filter(e => e.address.trim())
+        .map(e => ({ address: e.address.trim() }));
 
-      const validPhones = phones
-        .filter((phone) => phone.e164.trim())
-        .map((phone) => ({
-          e164: phone.e164.startsWith('+') ? phone.e164 : `+${phone.e164}`,
-          international: phone.international || phone.e164,
-          country: phone.country,
-          type: phone.type,
-          isPrimary: phone.isPrimary,
-        }));
+      const validPhones = data.phones
+        .filter(p => p.number.trim())
+        .map(p => {
+          const cleaned = p.number.replace(/[\s\-()]/g, '');
+          const e164 = cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+          return {
+            e164,
+            international: p.number,
+            country: 'US',
+            type: 'MOBILE' as const,
+            isPrimary: p.isPrimary,
+          };
+        });
 
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
+      const payload = {
+        name: data.name.trim(),
+        emails: validEmails,
+        phones: validPhones,
+        company: data.company?.trim() || undefined,
+        position: data.position?.trim() || undefined,
+        notes: data.notes?.trim() || undefined,
+        contactType: isEditMode ? (data.contactType || null) : (data.contactType || undefined),
+        source: isEditMode ? (data.source || null) : (data.source || undefined),
+      };
+
+      const url = isEditMode ? `/api/contacts/${contact!.id}` : '/api/contacts';
+      const method = isEditMode ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          emails: validEmails,
-          phones: validPhones,
-          company: company.trim() || undefined,
-          position: position.trim() || undefined,
-          notes: notes.trim() || undefined,
-          contactType: contactType || undefined,
-          source: source || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create contact');
+        const result = await response.json();
+        throw new Error(result.error || `Failed to ${isEditMode ? 'update' : 'create'} contact`);
       }
 
-      // Dispatch event to refresh the table
-      window.dispatchEvent(new CustomEvent('contactCreated'));
+      window.dispatchEvent(new CustomEvent(isEditMode ? 'contactUpdated' : 'contactCreated'));
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
+      setSubmitError(err instanceof Error ? err.message : 'Неизвестная ошибка');
     }
   };
 
+  // Преобразуем типы контактов в формат ColorSelect
+  const contactTypeOptions: ColorOption[] = useMemo(() =>
+    contactTypes.map(type => ({
+      value: type.id,
+      label: type.name,
+      color: type.properties.color as string | undefined,
+    })),
+    [contactTypes]
+  );
+
+  // Преобразуем источники в формат ColorSelect
+  const sourceOptions: ColorOption[] = useMemo(() =>
+    sources.map(src => ({
+      value: src.id,
+      label: src.name,
+      color: src.properties.color as string | undefined,
+    })),
+    [sources]
+  );
+
+  const idPrefix = isEditMode ? 'edit-' : '';
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {submitError && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
         </div>
       )}
 
-      {/* Name field */}
+      {/* Name */}
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label htmlFor={`${idPrefix}name`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
           Имя *
         </label>
         <input
-          id="name"
+          id={`${idPrefix}name`}
           type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          {...register('name')}
           className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        {errors.name && (
+          <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+        )}
       </div>
 
       {/* Emails */}
@@ -187,31 +243,28 @@ export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
           </label>
           <button
             type="button"
-            onClick={addEmail}
+            onClick={() => appendEmail({ address: '' })}
             className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
           >
             + Добавить
           </button>
         </div>
         <div className="space-y-2">
-          {emails.map((email, index) => (
-            <div key={index} className="flex gap-2">
+          {emailFields.map((field, index) => (
+            <div key={field.id} className="flex gap-2">
               <input
                 type="email"
-                value={email.address}
-                onChange={(e) => updateEmail(index, e.target.value)}
+                {...register(`emails.${index}.address`)}
                 placeholder="email@example.com"
                 className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              {emails.length > 1 && (
+              {emailFields.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeEmail(index)}
                   className="px-2 py-2 text-zinc-400 hover:text-red-500"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  <Trash2 className="w-5 h-5" />
                 </button>
               )}
             </div>
@@ -227,45 +280,53 @@ export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
           </label>
           <button
             type="button"
-            onClick={addPhone}
+            onClick={() => appendPhone({ number: '', isPrimary: false })}
             className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
           >
             + Добавить
           </button>
         </div>
         <div className="space-y-2">
-          {phones.map((phone, index) => (
-            <div key={index} className="flex gap-2 items-center">
-              <input
-                type="tel"
-                value={phone.international}
-                onChange={(e) => updatePhone(index, e.target.value)}
-                placeholder="+7 999 123-45-67"
-                className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {phoneFields.map((field, index) => (
+            <div key={field.id} className="flex gap-2 items-center">
+              <div className="flex-1">
+                <Controller
+                  control={control}
+                  name={`phones.${index}.number`}
+                  render={({ field: phoneField }) => (
+                    <PhoneInput
+                      value={phoneField.value}
+                      onChange={phoneField.onChange}
+                      defaultCountry="us"
+                    />
+                  )}
+                />
+              </div>
+              <Controller
+                control={control}
+                name={`phones.${index}.isPrimary`}
+                render={({ field: primaryField }) => (
+                  <button
+                    type="button"
+                    onClick={() => setPhonePrimary(index)}
+                    className={`px-2 py-2 rounded ${
+                      primaryField.value
+                        ? 'text-yellow-500'
+                        : 'text-zinc-300 dark:text-zinc-600 hover:text-yellow-500'
+                    }`}
+                    title={primaryField.value ? 'Основной' : 'Сделать основным'}
+                  >
+                    <Star className="w-5 h-5" fill={primaryField.value ? 'currentColor' : 'none'} />
+                  </button>
+                )}
               />
-              <button
-                type="button"
-                onClick={() => setPhonePrimary(index)}
-                className={`px-2 py-2 rounded ${
-                  phone.isPrimary
-                    ? 'text-yellow-500'
-                    : 'text-zinc-300 dark:text-zinc-600 hover:text-yellow-500'
-                }`}
-                title={phone.isPrimary ? 'Основной' : 'Сделать основным'}
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              </button>
-              {phones.length > 1 && (
+              {phoneFields.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removePhone(index)}
                   className="px-2 py-2 text-zinc-400 hover:text-red-500"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  <Trash2 className="w-5 h-5" />
                 </button>
               )}
             </div>
@@ -276,66 +337,64 @@ export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
       {/* Contact Type & Source */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="contactType" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          <label htmlFor={`${idPrefix}contactType`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
             Тип контакта
           </label>
-          <select
-            id="contactType"
-            value={contactType}
-            onChange={(e) => setContactType(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Не указан</option>
-            {contactTypes.map((type) => (
-              <option key={type.id} value={type.code || type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="contactType"
+            render={({ field }) => (
+              <ColorSelect
+                id={`${idPrefix}contactType`}
+                options={contactTypeOptions}
+                value={field.value || ''}
+                onChange={field.onChange}
+                placeholder="Не указан"
+              />
+            )}
+          />
         </div>
         <div>
-          <label htmlFor="source" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          <label htmlFor={`${idPrefix}source`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
             Источник
           </label>
-          <select
-            id="source"
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Не указан</option>
-            {sources.map((src) => (
-              <option key={src.id} value={src.code || src.id}>
-                {src.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="source"
+            render={({ field }) => (
+              <ColorSelect
+                id={`${idPrefix}source`}
+                options={sourceOptions}
+                value={field.value || ''}
+                onChange={field.onChange}
+                placeholder="Не указан"
+              />
+            )}
+          />
         </div>
       </div>
 
       {/* Company & Position */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="company" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          <label htmlFor={`${idPrefix}company`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
             Компания
           </label>
           <input
-            id="company"
+            id={`${idPrefix}company`}
             type="text"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
+            {...register('company')}
             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="position" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          <label htmlFor={`${idPrefix}position`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
             Должность
           </label>
           <input
-            id="position"
+            id={`${idPrefix}position`}
             type="text"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
+            {...register('position')}
             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -343,13 +402,12 @@ export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
 
       {/* Notes */}
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label htmlFor={`${idPrefix}notes`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
           Заметки
         </label>
         <textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          id={`${idPrefix}notes`}
+          {...register('notes')}
           rows={3}
           className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
@@ -357,20 +415,12 @@ export function ContactForm({ onSuccess, onCancel }: ContactFormProps) {
 
       {/* Buttons */}
       <div className="flex gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors"
-        >
-          {loading ? 'Сохранение...' : 'Создать контакт'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium rounded-md transition-colors"
-        >
+        <Button type="submit" fullWidth isLoading={isSubmitting}>
+          {isEditMode ? 'Сохранить' : 'Создать контакт'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Отмена
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -1,6 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { FormField } from '@/components/ui/FormField';
+import { Button } from '@/components/ui/Button';
 
 interface DictionaryField {
   code: string;
@@ -31,6 +39,15 @@ interface DictionaryItemFormProps {
   onCancel: () => void;
 }
 
+const dictionaryItemFormSchema = z.object({
+  code: z.string().optional(),
+  name: z.string().min(1, 'Название обязательно'),
+  parentId: z.string().nullable(),
+  properties: z.record(z.string(), z.unknown()),
+});
+
+type DictionaryItemFormData = z.infer<typeof dictionaryItemFormSchema>;
+
 export function DictionaryItemForm({
   dictionaryCode,
   fields,
@@ -40,23 +57,34 @@ export function DictionaryItemForm({
   onSuccess,
   onCancel,
 }: DictionaryItemFormProps) {
-  const [code, setCode] = useState(item?.code || '');
-  const [name, setName] = useState(item?.name || '');
-  const [parentId, setParentId] = useState<string | null>(item?.parentId || null);
-  const [properties, setProperties] = useState<Record<string, unknown>>(item?.properties || {});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
   const isEditing = !!item;
 
-  // Получаем доступных родителей (исключаем самого себя и своих детей при редактировании)
-  const getAvailableParents = () => {
+  const {
+    register,
+    control,
+    watch,
+    setValue,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<DictionaryItemFormData>({
+    resolver: zodResolver(dictionaryItemFormSchema),
+    defaultValues: {
+      code: item?.code || '',
+      name: item?.name || '',
+      parentId: item?.parentId || null,
+      properties: item?.properties || {},
+    },
+  });
+
+  const properties = watch('properties');
+
+  const availableParents = useMemo(() => {
     if (!allowHierarchy) return [];
 
     const excludeIds = new Set<string>();
     if (item) {
       excludeIds.add(item.id);
-      // Рекурсивно исключаем детей
       const addChildren = (parentId: string) => {
         items.forEach((i) => {
           if (i.parentId === parentId) {
@@ -69,17 +97,13 @@ export function DictionaryItemForm({
     }
 
     return items.filter((i) => !excludeIds.has(i.id) && i.depth < 2);
-  };
+  }, [allowHierarchy, item, items]);
 
   const handlePropertyChange = (code: string, value: unknown) => {
-    setProperties({ ...properties, [code]: value });
+    setValue('properties', { ...properties, [code]: value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: DictionaryItemFormData) => {
     try {
       const url = isEditing
         ? `/api/dictionaries/${dictionaryCode}/items/${item.id}`
@@ -87,19 +111,18 @@ export function DictionaryItemForm({
       const method = isEditing ? 'PATCH' : 'POST';
 
       const body: Record<string, unknown> = {
-        name,
-        properties,
+        name: data.name,
+        properties: data.properties,
       };
 
-      // Код только при создании или если изменился
-      if (code.trim()) {
-        body.code = code.trim();
+      if (data.code?.trim()) {
+        body.code = data.code.trim();
       } else if (isEditing && item?.code) {
-        body.code = null; // Убираем код если очистили
+        body.code = null;
       }
 
       if (allowHierarchy) {
-        body.parentId = parentId;
+        body.parentId = data.parentId;
       }
 
       const response = await fetch(url, {
@@ -109,15 +132,15 @@ export function DictionaryItemForm({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Ошибка сохранения');
+        const responseData = await response.json();
+        throw new Error(responseData.error || 'Ошибка сохранения');
       }
 
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
-    } finally {
-      setIsSubmitting(false);
+      setError('root', {
+        message: err instanceof Error ? err.message : 'Ошибка сохранения',
+      });
     }
   };
 
@@ -134,11 +157,10 @@ export function DictionaryItemForm({
               onChange={(e) => handlePropertyChange(field.code, e.target.value)}
               className="w-10 h-10 rounded border border-zinc-300 dark:border-zinc-700 cursor-pointer"
             />
-            <input
-              type="text"
+            <Input
               value={String(value || '')}
               onChange={(e) => handlePropertyChange(field.code, e.target.value)}
-              className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 text-sm"
+              className="flex-1"
               placeholder="#000000"
             />
           </div>
@@ -146,110 +168,110 @@ export function DictionaryItemForm({
 
       case 'number':
         return (
-          <input
+          <Input
             type="number"
             value={value !== undefined ? Number(value) : ''}
             onChange={(e) => handlePropertyChange(field.code, e.target.value ? Number(e.target.value) : undefined)}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
           />
         );
 
       case 'boolean':
         return (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={Boolean(value)}
-              onChange={(e) => handlePropertyChange(field.code, e.target.checked)}
-              className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700"
-            />
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
-              {field.name}
-            </span>
-          </label>
+          <Checkbox
+            checked={Boolean(value)}
+            onChange={(e) => handlePropertyChange(field.code, e.target.checked)}
+            label={field.name}
+          />
         );
 
       case 'icon':
         return (
-          <input
-            type="text"
-            value={String(value || '')}
-            onChange={(e) => handlePropertyChange(field.code, e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
-            placeholder="user, star, folder..."
-          />
+          <div className="space-y-1">
+            <Input
+              value={String(value || '')}
+              onChange={(e) => handlePropertyChange(field.code, e.target.value)}
+              placeholder="message, mail, phone..."
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Use icon names from{' '}
+              <a
+                href="https://lucide.dev/icons"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                lucide.dev/icons
+              </a>
+              {' '}(e.g., message, mail, phone-call, send)
+            </p>
+          </div>
         );
 
       default:
         return (
-          <input
-            type="text"
+          <Input
             value={String(value || '')}
             onChange={(e) => handlePropertyChange(field.code, e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
           />
         );
     }
   };
 
-  const availableParents = getAvailableParents();
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {errors.root && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
-          {error}
+          {errors.root.message}
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-          Код
-        </label>
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:ring-2 focus:ring-zinc-500 dark:focus:ring-zinc-400 focus:border-transparent font-mono"
+      <FormField
+        label="Код"
+        htmlFor="code"
+        hint="Уникальный код для связи с другими сущностями"
+      >
+        <Input
+          id="code"
+          {...register('code', {
+            onChange: (e) => {
+              e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+            },
+          })}
+          className="font-mono"
           placeholder="client"
         />
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-          Уникальный код для связи с другими сущностями
-        </p>
-      </div>
+      </FormField>
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-          Название <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:ring-2 focus:ring-zinc-500 dark:focus:ring-zinc-400 focus:border-transparent"
+      <FormField label="Название" htmlFor="name" required error={errors.name?.message}>
+        <Input
+          id="name"
+          {...register('name')}
           placeholder="Название элемента"
-          required
+          error={errors.name?.message}
         />
-      </div>
+      </FormField>
 
       {allowHierarchy && availableParents.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            Родительский элемент
-          </label>
-          <select
-            value={parentId || ''}
-            onChange={(e) => setParentId(e.target.value || null)}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
-          >
-            <option value="">Без родителя (корневой)</option>
-            {availableParents.map((p) => (
-              <option key={p.id} value={p.id}>
-                {'—'.repeat(p.depth)} {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FormField label="Родительский элемент" htmlFor="parentId">
+          <Controller
+            control={control}
+            name="parentId"
+            render={({ field }) => (
+              <Select
+                id="parentId"
+                value={field.value || ''}
+                onChange={(e) => field.onChange(e.target.value || null)}
+              >
+                <option value="">Без родителя (корневой)</option>
+                {availableParents.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {'—'.repeat(p.depth)} {p.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
+        </FormField>
       )}
 
       {/* Дополнительные поля */}
@@ -260,15 +282,13 @@ export function DictionaryItemForm({
           </h3>
           <div className="space-y-4">
             {fields.map((field) => (
-              <div key={field.code}>
-                {field.type !== 'boolean' && (
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    {field.name}
-                    {field.required && <span className="text-red-500"> *</span>}
-                  </label>
-                )}
+              <FormField
+                key={field.code}
+                label={field.type !== 'boolean' ? field.name : undefined}
+                required={field.required}
+              >
                 {renderFieldInput(field)}
-              </div>
+              </FormField>
             ))}
           </div>
         </div>
@@ -276,21 +296,12 @@ export function DictionaryItemForm({
 
       {/* Кнопки */}
       <div className="flex gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50"
-        >
-          Отмена
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex-1 px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-zinc-50 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
-        >
-          {isSubmitting ? 'Сохранение...' : isEditing ? 'Сохранить' : 'Добавить'}
-        </button>
+        <Button type="submit" fullWidth isLoading={isSubmitting}>
+          {isEditing ? 'Save' : 'Add'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
       </div>
     </form>
   );

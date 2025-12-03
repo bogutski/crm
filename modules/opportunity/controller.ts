@@ -1,30 +1,90 @@
-import Opportunity, { IOpportunity, OpportunityStage } from './model';
+import mongoose from 'mongoose';
+import Opportunity, { IOpportunity } from './model';
 import {
   CreateOpportunityDTO,
   UpdateOpportunityDTO,
   OpportunityResponse,
   OpportunitiesListResponse,
   OpportunityFilters,
-  OpportunityStats,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+// Import models for mongoose to register them before populate
+import '@/modules/dictionary/model';
+import '@/modules/contact/model';
+import '@/modules/user/model';
+import '@/modules/pipeline/model';
 
-function toOpportunityResponse(opp: IOpportunity): OpportunityResponse {
+interface PopulatedOpportunity extends Omit<IOpportunity, 'contact' | 'ownerId' | 'priority' | 'pipelineId' | 'stageId'> {
+  contact?: {
+    _id: { toString(): string };
+    name: string;
+  } | null;
+  ownerId?: {
+    _id: { toString(): string };
+    name: string;
+    email: string;
+  } | null;
+  priority?: {
+    _id: { toString(): string };
+    name: string;
+    properties: { color?: string };
+  } | null;
+  pipelineId?: {
+    _id: { toString(): string };
+    name: string;
+    code: string;
+  } | null;
+  stageId?: {
+    _id: { toString(): string };
+    name: string;
+    color: string;
+    order: number;
+    probability: number;
+    isInitial: boolean;
+    isFinal: boolean;
+    isWon: boolean;
+  } | null;
+}
+
+function toOpportunityResponse(opp: PopulatedOpportunity): OpportunityResponse {
   return {
     id: opp._id.toString(),
-    title: opp.title,
+    name: opp.name,
+    amount: opp.amount,
+    closingDate: opp.closingDate,
+    utm: opp.utm,
     description: opp.description,
-    value: opp.value,
-    currency: opp.currency,
-    stage: opp.stage,
-    priority: opp.priority,
-    probability: opp.probability,
-    expectedCloseDate: opp.expectedCloseDate,
-    actualCloseDate: opp.actualCloseDate,
-    contactId: opp.contactId?.toString(),
-    ownerId: opp.ownerId.toString(),
-    notes: opp.notes,
-    tags: opp.tags,
+    externalId: opp.externalId,
+    archived: opp.archived,
+    contact: opp.contact ? {
+      id: opp.contact._id.toString(),
+      name: opp.contact.name,
+    } : null,
+    owner: opp.ownerId ? {
+      id: opp.ownerId._id.toString(),
+      name: opp.ownerId.name,
+      email: opp.ownerId.email,
+    } : null,
+    priority: opp.priority ? {
+      id: opp.priority._id.toString(),
+      name: opp.priority.name,
+      color: opp.priority.properties?.color,
+    } : null,
+    pipeline: opp.pipelineId ? {
+      id: opp.pipelineId._id.toString(),
+      name: opp.pipelineId.name,
+      code: opp.pipelineId.code,
+    } : null,
+    stage: opp.stageId ? {
+      id: opp.stageId._id.toString(),
+      name: opp.stageId.name,
+      color: opp.stageId.color,
+      order: opp.stageId.order,
+      probability: opp.stageId.probability,
+      isInitial: opp.stageId.isInitial,
+      isFinal: opp.stageId.isFinal,
+      isWon: opp.stageId.isWon,
+    } : null,
     createdAt: opp.createdAt,
     updatedAt: opp.updatedAt,
   };
@@ -37,13 +97,16 @@ export async function getOpportunities(
 
   const {
     search,
-    stage,
-    priority,
+    archived,
     ownerId,
     contactId,
-    minValue,
-    maxValue,
-    tags,
+    priorityId,
+    pipelineId,
+    stageId,
+    minAmount,
+    maxAmount,
+    closingDateFrom,
+    closingDateTo,
     page = 1,
     limit = 20,
   } = filters;
@@ -52,17 +115,13 @@ export async function getOpportunities(
 
   if (search) {
     query.$or = [
-      { title: { $regex: search, $options: 'i' } },
+      { name: { $regex: search, $options: 'i' } },
       { description: { $regex: search, $options: 'i' } },
     ];
   }
 
-  if (stage) {
-    query.stage = stage;
-  }
-
-  if (priority) {
-    query.priority = priority;
+  if (archived !== undefined) {
+    query.archived = archived;
   }
 
   if (ownerId) {
@@ -70,33 +129,67 @@ export async function getOpportunities(
   }
 
   if (contactId) {
-    query.contactId = contactId;
+    query.contact = contactId;
   }
 
-  if (minValue !== undefined || maxValue !== undefined) {
-    query.value = {};
-    if (minValue !== undefined) {
-      (query.value as Record<string, number>).$gte = minValue;
+  if (priorityId) {
+    query.priority = priorityId;
+  }
+
+  if (pipelineId && mongoose.Types.ObjectId.isValid(pipelineId)) {
+    query.pipelineId = new mongoose.Types.ObjectId(pipelineId);
+  }
+
+  if (stageId && mongoose.Types.ObjectId.isValid(stageId)) {
+    query.stageId = new mongoose.Types.ObjectId(stageId);
+  }
+
+  if (minAmount !== undefined || maxAmount !== undefined) {
+    query.amount = {};
+    if (minAmount !== undefined) {
+      (query.amount as Record<string, number>).$gte = minAmount;
     }
-    if (maxValue !== undefined) {
-      (query.value as Record<string, number>).$lte = maxValue;
+    if (maxAmount !== undefined) {
+      (query.amount as Record<string, number>).$lte = maxAmount;
     }
   }
 
-  if (tags && tags.length > 0) {
-    query.tags = { $in: tags };
+  if (closingDateFrom || closingDateTo) {
+    query.closingDate = {};
+    if (closingDateFrom) {
+      (query.closingDate as Record<string, Date>).$gte = new Date(closingDateFrom);
+    }
+    if (closingDateTo) {
+      (query.closingDate as Record<string, Date>).$lte = new Date(closingDateTo);
+    }
   }
 
   const skip = (page - 1) * limit;
 
-  const [opportunities, total] = await Promise.all([
-    Opportunity.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+  const [opportunities, total, aggregation] = await Promise.all([
+    Opportunity.find(query)
+      .populate('contact', 'name')
+      .populate('ownerId', 'name email')
+      .populate('priority', 'name properties')
+      .populate('pipelineId', 'name code')
+      .populate('stageId', 'name color order probability isInitial isFinal isWon')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Opportunity.countDocuments(query),
+    Opportunity.aggregate([
+      { $match: query },
+      { $group: { _id: null, totalAmount: { $sum: '$amount' } } },
+    ]),
   ]);
 
+  const totalAmount = aggregation[0]?.totalAmount || 0;
+
   return {
-    opportunities: opportunities.map(toOpportunityResponse),
+    opportunities: (opportunities as unknown as PopulatedOpportunity[]).map(toOpportunityResponse),
     total,
+    totalAmount,
     page,
     limit,
   };
@@ -105,10 +198,17 @@ export async function getOpportunities(
 export async function getOpportunityById(id: string): Promise<OpportunityResponse | null> {
   await dbConnect();
 
-  const opp = await Opportunity.findById(id);
+  const opp = await Opportunity.findById(id)
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .lean();
+
   if (!opp) return null;
 
-  return toOpportunityResponse(opp);
+  return toOpportunityResponse(opp as unknown as PopulatedOpportunity);
 }
 
 export async function createOpportunity(
@@ -117,21 +217,30 @@ export async function createOpportunity(
   await dbConnect();
 
   const opp = await Opportunity.create({
-    title: data.title,
+    name: data.name,
+    amount: data.amount,
+    closingDate: data.closingDate,
+    utm: data.utm,
     description: data.description,
-    value: data.value,
-    currency: data.currency || 'USD',
-    stage: data.stage || 'prospecting',
-    priority: data.priority || 'medium',
-    probability: data.probability || 0,
-    expectedCloseDate: data.expectedCloseDate,
-    contactId: data.contactId,
+    externalId: data.externalId,
+    archived: data.archived ?? false,
+    contact: data.contactId,
     ownerId: data.ownerId,
-    notes: data.notes,
-    tags: data.tags || [],
+    priority: data.priorityId,
+    pipelineId: data.pipelineId,
+    stageId: data.stageId,
   });
 
-  return toOpportunityResponse(opp);
+  // Populate for response
+  const populated = await Opportunity.findById(opp._id)
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .lean();
+
+  return toOpportunityResponse(populated as unknown as PopulatedOpportunity);
 }
 
 export async function updateOpportunity(
@@ -140,10 +249,32 @@ export async function updateOpportunity(
 ): Promise<OpportunityResponse | null> {
   await dbConnect();
 
-  const opp = await Opportunity.findByIdAndUpdate(id, { $set: data }, { new: true });
+  const updateData: Record<string, unknown> = {};
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.amount !== undefined) updateData.amount = data.amount;
+  if (data.closingDate !== undefined) updateData.closingDate = data.closingDate;
+  if (data.utm !== undefined) updateData.utm = data.utm;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.externalId !== undefined) updateData.externalId = data.externalId;
+  if (data.archived !== undefined) updateData.archived = data.archived;
+  if (data.contactId !== undefined) updateData.contact = data.contactId;
+  if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
+  if (data.priorityId !== undefined) updateData.priority = data.priorityId;
+  if (data.pipelineId !== undefined) updateData.pipelineId = data.pipelineId;
+  if (data.stageId !== undefined) updateData.stageId = data.stageId;
+
+  const opp = await Opportunity.findByIdAndUpdate(id, { $set: updateData }, { new: true })
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .lean();
+
   if (!opp) return null;
 
-  return toOpportunityResponse(opp);
+  return toOpportunityResponse(opp as unknown as PopulatedOpportunity);
 }
 
 export async function deleteOpportunity(id: string): Promise<boolean> {
@@ -153,81 +284,27 @@ export async function deleteOpportunity(id: string): Promise<boolean> {
   return !!result;
 }
 
-export async function updateOpportunityStage(
+export async function archiveOpportunity(
   id: string,
-  stage: OpportunityStage
+  archived: boolean = true
 ): Promise<OpportunityResponse | null> {
   await dbConnect();
 
-  const updateData: Record<string, unknown> = { stage };
+  const opp = await Opportunity.findByIdAndUpdate(
+    id,
+    { $set: { archived } },
+    { new: true }
+  )
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .lean();
 
-  if (stage === 'closed_won' || stage === 'closed_lost') {
-    updateData.actualCloseDate = new Date();
-  }
-
-  const opp = await Opportunity.findByIdAndUpdate(id, { $set: updateData }, { new: true });
   if (!opp) return null;
 
-  return toOpportunityResponse(opp);
-}
-
-export async function getOpportunityStats(ownerId?: string): Promise<OpportunityStats> {
-  await dbConnect();
-
-  const matchStage: Record<string, unknown> = {};
-  if (ownerId) {
-    matchStage.ownerId = ownerId;
-  }
-
-  const stages: OpportunityStage[] = [
-    'prospecting',
-    'qualification',
-    'proposal',
-    'negotiation',
-    'closed_won',
-    'closed_lost',
-  ];
-
-  const pipeline = [
-    { $match: matchStage },
-    {
-      $group: {
-        _id: '$stage',
-        count: { $sum: 1 },
-        value: { $sum: '$value' },
-        avgProbability: { $avg: '$probability' },
-      },
-    },
-  ];
-
-  const results = await Opportunity.aggregate(pipeline);
-
-  const byStage = stages.reduce(
-    (acc, stage) => {
-      acc[stage] = { count: 0, value: 0 };
-      return acc;
-    },
-    {} as Record<OpportunityStage, { count: number; value: number }>
-  );
-
-  let totalValue = 0;
-  let totalCount = 0;
-  let totalProbability = 0;
-
-  for (const result of results) {
-    const stage = result._id as OpportunityStage;
-    byStage[stage] = { count: result.count, value: result.value };
-    totalValue += result.value;
-    totalCount += result.count;
-    totalProbability += result.avgProbability * result.count;
-  }
-
-  return {
-    totalValue,
-    totalCount,
-    byStage,
-    avgProbability: totalCount > 0 ? totalProbability / totalCount : 0,
-  };
+  return toOpportunityResponse(opp as unknown as PopulatedOpportunity);
 }
 
 export async function getOpportunitiesByContact(
@@ -235,6 +312,94 @@ export async function getOpportunitiesByContact(
 ): Promise<OpportunityResponse[]> {
   await dbConnect();
 
-  const opportunities = await Opportunity.find({ contactId }).sort({ createdAt: -1 });
-  return opportunities.map(toOpportunityResponse);
+  const opportunities = await Opportunity.find({ contact: contactId })
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return (opportunities as unknown as PopulatedOpportunity[]).map(toOpportunityResponse);
+}
+
+export async function getOpportunitiesByOwner(
+  ownerId: string
+): Promise<OpportunityResponse[]> {
+  await dbConnect();
+
+  const opportunities = await Opportunity.find({ ownerId })
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return (opportunities as unknown as PopulatedOpportunity[]).map(toOpportunityResponse);
+}
+
+export async function getOpportunitiesByPipeline(
+  pipelineId: string
+): Promise<OpportunityResponse[]> {
+  await dbConnect();
+
+  const opportunities = await Opportunity.find({ pipelineId })
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return (opportunities as unknown as PopulatedOpportunity[]).map(toOpportunityResponse);
+}
+
+export async function getOpportunitiesByStage(
+  stageId: string
+): Promise<OpportunityResponse[]> {
+  await dbConnect();
+
+  const opportunities = await Opportunity.find({ stageId })
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return (opportunities as unknown as PopulatedOpportunity[]).map(toOpportunityResponse);
+}
+
+export async function moveOpportunityToStage(
+  opportunityId: string,
+  stageId: string,
+  pipelineId?: string
+): Promise<OpportunityResponse | null> {
+  await dbConnect();
+
+  const updateData: Record<string, unknown> = { stageId };
+  if (pipelineId) {
+    updateData.pipelineId = pipelineId;
+  }
+
+  const opp = await Opportunity.findByIdAndUpdate(
+    opportunityId,
+    { $set: updateData },
+    { new: true }
+  )
+    .populate('contact', 'name')
+    .populate('ownerId', 'name email')
+    .populate('priority', 'name properties')
+    .populate('pipelineId', 'name code')
+    .populate('stageId', 'name color order probability isInitial isFinal isWon')
+    .lean();
+
+  if (!opp) return null;
+
+  return toOpportunityResponse(opp as unknown as PopulatedOpportunity);
 }

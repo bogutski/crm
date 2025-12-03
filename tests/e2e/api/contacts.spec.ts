@@ -31,12 +31,13 @@ test.describe('Contacts API', () => {
   });
 
   test.describe('Unauthorized access', () => {
-    test('GET /api/contacts should redirect to login without auth', async ({ playwright }) => {
+    test('POST /api/contacts/search should redirect to login without auth', async ({ playwright }) => {
       // Создаём новый контекст без cookies (без следования редиректам)
       const context = await playwright.request.newContext({
         baseURL: 'http://localhost:3001',
       });
-      const response = await context.get('/api/contacts', {
+      const response = await context.post('/api/contacts/search', {
+        data: {},
         maxRedirects: 0,
       });
       // Middleware редиректит на /login
@@ -97,9 +98,10 @@ test.describe('Contacts API', () => {
       createdContactId = contact.id;
     });
 
-    test('GET /api/contacts should return contacts list', async ({ request }) => {
-      const response = await request.get('/api/contacts', {
+    test('POST /api/contacts/search should return contacts list', async ({ request }) => {
+      const response = await request.post('/api/contacts/search', {
         headers: { Cookie: authCookies },
+        data: {},
       });
 
       expect(response.status()).toBe(200);
@@ -196,8 +198,154 @@ test.describe('Contacts API', () => {
     });
   });
 
+  test.describe('Contact Type with Dictionary', () => {
+    let contactTypeId: string;
+
+    test.beforeAll(async ({ request }) => {
+      // Создаём словарь contact_types если его нет
+      const dictionaryResponse = await request.get('/api/dictionaries/contact_types', {
+        headers: { Cookie: authCookies },
+      });
+
+      if (dictionaryResponse.status() === 404) {
+        // Создаём словарь
+        await request.post('/api/dictionaries', {
+          headers: { Cookie: authCookies },
+          data: {
+            code: 'contact_types',
+            name: 'Типы контактов',
+            fields: [
+              { code: 'color', name: 'Цвет', type: 'color', required: false }
+            ]
+          },
+        });
+      }
+
+      // Создаём элемент словаря с цветом
+      const itemResponse = await request.post('/api/dictionaries/contact_types/items', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Клиент',
+          code: 'client',
+          properties: { color: '#22c55e' }
+        },
+      });
+
+      if (itemResponse.ok()) {
+        const item = await itemResponse.json();
+        contactTypeId = item.id;
+      } else {
+        // Если элемент уже существует, получим его
+        const listResponse = await request.get('/api/dictionaries/contact_types/items', {
+          headers: { Cookie: authCookies },
+        });
+        const data = await listResponse.json();
+        const existingItem = data.items?.find((i: { code: string }) => i.code === 'client');
+        if (existingItem) {
+          contactTypeId = existingItem.id;
+        }
+      }
+    });
+
+    test('POST /api/contacts with contactType should link to dictionary item', async ({ request }) => {
+      const response = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Contact With Type',
+          contactType: contactTypeId,
+        },
+      });
+
+      expect(response.status()).toBe(201);
+      const contact = await response.json();
+
+      expect(contact.contactType).toBeDefined();
+      expect(contact.contactType.id).toBe(contactTypeId);
+      expect(contact.contactType.name).toBe('Клиент');
+      expect(contact.contactType.color).toBe('#22c55e');
+    });
+
+    test('POST /api/contacts/search should return contactType with color', async ({ request }) => {
+      // Создаём контакт с типом
+      await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Contact For List Test',
+          contactType: contactTypeId,
+        },
+      });
+
+      const response = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: { search: 'Contact For List Test' },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      const contact = data.contacts.find((c: { name: string }) => c.name === 'Contact For List Test');
+      expect(contact).toBeDefined();
+      expect(contact.contactType).toBeDefined();
+      expect(contact.contactType.name).toBe('Клиент');
+      expect(contact.contactType.color).toBe('#22c55e');
+    });
+
+    test('PATCH /api/contacts/:id should update contactType', async ({ request }) => {
+      // Создаём контакт без типа
+      const createResponse = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Contact Without Type',
+        },
+      });
+      const created = await createResponse.json();
+      expect(created.contactType).toBeNull();
+
+      // Добавляем тип
+      const updateResponse = await request.patch(`/api/contacts/${created.id}`, {
+        headers: { Cookie: authCookies },
+        data: {
+          contactType: contactTypeId,
+        },
+      });
+
+      expect(updateResponse.status()).toBe(200);
+      const updated = await updateResponse.json();
+
+      expect(updated.contactType).toBeDefined();
+      expect(updated.contactType.id).toBe(contactTypeId);
+      expect(updated.contactType.name).toBe('Клиент');
+    });
+
+    test('PATCH /api/contacts/:id should remove contactType when set to null', async ({ request }) => {
+      // Создаём контакт с типом
+      const createResponse = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Contact To Remove Type',
+          contactType: contactTypeId,
+        },
+      });
+      const created = await createResponse.json();
+      expect(created.contactType).toBeDefined();
+
+      // Удаляем тип
+      const updateResponse = await request.patch(`/api/contacts/${created.id}`, {
+        headers: { Cookie: authCookies },
+        data: {
+          contactType: null,
+        },
+      });
+
+      expect(updateResponse.status()).toBe(200);
+      const updated = await updateResponse.json();
+
+      expect(updated.contactType).toBeNull();
+    });
+  });
+
   test.describe('Filtering and pagination', () => {
-    test('GET /api/contacts should support search filter', async ({ request }) => {
+    test('POST /api/contacts/search should support search filter', async ({ request }) => {
       // Создаём контакт с уникальным именем
       const uniqueName = `SearchTest${Date.now()}`;
       await request.post('/api/contacts', {
@@ -207,8 +355,9 @@ test.describe('Contacts API', () => {
         },
       });
 
-      const response = await request.get(`/api/contacts?search=${uniqueName}`, {
+      const response = await request.post('/api/contacts/search', {
         headers: { Cookie: authCookies },
+        data: { search: uniqueName },
       });
 
       expect(response.status()).toBe(200);
@@ -218,9 +367,10 @@ test.describe('Contacts API', () => {
       expect(data.contacts[0].name).toBe(uniqueName);
     });
 
-    test('GET /api/contacts should support pagination', async ({ request }) => {
-      const response = await request.get('/api/contacts?page=1&limit=5', {
+    test('POST /api/contacts/search should support pagination', async ({ request }) => {
+      const response = await request.post('/api/contacts/search', {
         headers: { Cookie: authCookies },
+        data: { page: 1, limit: 5 },
       });
 
       expect(response.status()).toBe(200);

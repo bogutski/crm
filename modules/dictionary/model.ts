@@ -70,8 +70,7 @@ const DictionarySchema = new Schema<IDictionary>(
   { timestamps: true }
 );
 
-// Индексы для словаря
-DictionarySchema.index({ code: 1 }, { unique: true });
+// Индексы для словаря (code уже имеет unique: true в схеме)
 DictionarySchema.index({ name: 'text' });
 
 // Схема элемента словаря

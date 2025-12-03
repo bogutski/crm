@@ -2,13 +2,50 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { BookOpen, Users, Shield, Key, GitBranch, MessageCircle, Settings, LucideIcon } from 'lucide-react';
 
-const settingsNavItems = [
-  { href: '/settings', label: 'Общие' },
-  { href: '/settings/profile', label: 'Профиль' },
-  { href: '/settings/dictionaries', label: 'Словари' },
-  { href: '/settings/notifications', label: 'Уведомления' },
-  { href: '/settings/security', label: 'Безопасность' },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const settingsNavItems: NavItem[] = [
+  {
+    href: '/settings/general',
+    label: 'Общие',
+    icon: Settings,
+  },
+  {
+    href: '/settings/pipelines',
+    label: 'Воронки',
+    icon: GitBranch,
+  },
+  {
+    href: '/settings/dictionaries',
+    label: 'Словари',
+    icon: BookOpen,
+  },
+  {
+    href: '/settings/channels',
+    label: 'Каналы',
+    icon: MessageCircle,
+  },
+  {
+    href: '/settings/users',
+    label: 'Пользователи',
+    icon: Users,
+  },
+  {
+    href: '/settings/roles',
+    label: 'Роли',
+    icon: Shield,
+  },
+  {
+    href: '/settings/api',
+    label: 'API',
+    icon: Key,
+  },
 ];
 
 export function SettingsNav() {
@@ -22,19 +59,19 @@ export function SettingsNav() {
         </h2>
         <ul className="space-y-1">
           {settingsNavItems.map((item) => {
-            const isActive = item.href === '/settings'
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+            const isActive = pathname.startsWith(item.href);
+            const Icon = item.icon;
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`block px-3 py-2 text-sm rounded-md transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
                     isActive
                       ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 font-medium'
                       : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-50'
                   }`}
                 >
+                  <Icon className="w-5 h-5" />
                   {item.label}
                 </Link>
               </li>

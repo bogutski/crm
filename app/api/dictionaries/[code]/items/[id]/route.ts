@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/modules/user';
 import {
   getDictionaryItemById,
   updateDictionaryItem,
   deleteDictionaryItem,
   updateDictionaryItemSchema,
 } from '@/modules/dictionary';
+import { apiAuth } from '@/lib/api-auth';
 
 interface RouteParams {
   params: Promise<{ code: string; id: string }>;
@@ -13,8 +13,8 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -64,8 +64,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

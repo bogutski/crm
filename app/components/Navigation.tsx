@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { href: '/', label: 'Главная' },
   { href: '/contacts', label: 'Контакты' },
+  { href: '/opportunities', label: 'Сделки' },
 ];
 
 export function Navigation() {

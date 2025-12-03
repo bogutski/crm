@@ -27,11 +27,12 @@ test.describe('Opportunities API', () => {
   });
 
   test.describe('Unauthorized access', () => {
-    test('GET /api/opportunities should redirect to login without auth', async ({ playwright }) => {
+    test('POST /api/opportunities/search should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
         baseURL: 'http://localhost:3001',
       });
-      const response = await context.get('/api/opportunities', {
+      const response = await context.post('/api/opportunities/search', {
+        data: {},
         maxRedirects: 0,
       });
       expect(response.status()).toBe(307);
@@ -44,7 +45,7 @@ test.describe('Opportunities API', () => {
         baseURL: 'http://localhost:3001',
       });
       const response = await context.post('/api/opportunities', {
-        data: { title: 'Test', value: 1000 },
+        data: { name: 'Test', amount: 1000 },
         maxRedirects: 0,
       });
       expect(response.status()).toBe(307);
@@ -56,13 +57,9 @@ test.describe('Opportunities API', () => {
   test.describe('CRUD operations', () => {
     test('POST /api/opportunities should create a new opportunity', async ({ request }) => {
       const opportunityData = {
-        title: 'Big Deal',
+        name: 'Big Deal',
         description: 'A very important deal',
-        value: 50000,
-        currency: 'USD',
-        stage: 'prospecting',
-        priority: 'high',
-        probability: 25,
+        amount: 50000,
       };
 
       const response = await request.post('/api/opportunities', {
@@ -73,16 +70,17 @@ test.describe('Opportunities API', () => {
       expect(response.status()).toBe(201);
       const opportunity = await response.json();
 
-      expect(opportunity.title).toBe(opportunityData.title);
-      expect(opportunity.value).toBe(opportunityData.value);
-      expect(opportunity.stage).toBe(opportunityData.stage);
-      expect(opportunity.priority).toBe(opportunityData.priority);
+      expect(opportunity.name).toBe(opportunityData.name);
+      expect(opportunity.amount).toBe(opportunityData.amount);
+      expect(opportunity.description).toBe(opportunityData.description);
       expect(opportunity.id).toBeDefined();
+      expect(opportunity.archived).toBe(false);
     });
 
-    test('GET /api/opportunities should return opportunities list', async ({ request }) => {
-      const response = await request.get('/api/opportunities', {
+    test('POST /api/opportunities/search should return opportunities list', async ({ request }) => {
+      const response = await request.post('/api/opportunities/search', {
         headers: { Cookie: authCookies },
+        data: {},
       });
 
       expect(response.status()).toBe(200);
@@ -98,8 +96,8 @@ test.describe('Opportunities API', () => {
       const createResponse = await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
         data: {
-          title: 'Test Opportunity',
-          value: 10000,
+          name: 'Test Opportunity',
+          amount: 10000,
         },
       });
       const created = await createResponse.json();
@@ -112,7 +110,7 @@ test.describe('Opportunities API', () => {
       const opportunity = await response.json();
 
       expect(opportunity.id).toBe(created.id);
-      expect(opportunity.title).toBe('Test Opportunity');
+      expect(opportunity.name).toBe('Test Opportunity');
     });
 
     test('GET /api/opportunities/:id should return 404 for non-existent opportunity', async ({ request }) => {
@@ -128,9 +126,8 @@ test.describe('Opportunities API', () => {
       const createResponse = await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
         data: {
-          title: 'Update Test',
-          value: 5000,
-          stage: 'prospecting',
+          name: 'Update Test',
+          amount: 5000,
         },
       });
       const created = await createResponse.json();
@@ -138,28 +135,26 @@ test.describe('Opportunities API', () => {
       const response = await request.patch(`/api/opportunities/${created.id}`, {
         headers: { Cookie: authCookies },
         data: {
-          title: 'Updated Title',
-          value: 7500,
-          stage: 'qualification',
-          probability: 50,
+          name: 'Updated Title',
+          amount: 7500,
+          description: 'Updated description',
         },
       });
 
       expect(response.status()).toBe(200);
       const updated = await response.json();
 
-      expect(updated.title).toBe('Updated Title');
-      expect(updated.value).toBe(7500);
-      expect(updated.stage).toBe('qualification');
-      expect(updated.probability).toBe(50);
+      expect(updated.name).toBe('Updated Title');
+      expect(updated.amount).toBe(7500);
+      expect(updated.description).toBe('Updated description');
     });
 
     test('DELETE /api/opportunities/:id should delete opportunity', async ({ request }) => {
       const createResponse = await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
         data: {
-          title: 'Delete Me',
-          value: 1000,
+          name: 'Delete Me',
+          amount: 1000,
         },
       });
       const created = await createResponse.json();
@@ -178,131 +173,189 @@ test.describe('Opportunities API', () => {
     });
   });
 
-  test.describe('Stages workflow', () => {
-    test('should move opportunity through stages', async ({ request }) => {
+  test.describe('Archive functionality', () => {
+    test('should archive and unarchive opportunity', async ({ request }) => {
       const createResponse = await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
         data: {
-          title: 'Stage Workflow Test',
-          value: 20000,
-          stage: 'prospecting',
+          name: 'Archive Test',
+          amount: 20000,
         },
       });
       const created = await createResponse.json();
-      expect(created.stage).toBe('prospecting');
+      expect(created.archived).toBe(false);
 
-      // Move to qualification
+      // Archive the opportunity
       let response = await request.patch(`/api/opportunities/${created.id}`, {
         headers: { Cookie: authCookies },
-        data: { stage: 'qualification' },
+        data: { archived: true },
       });
       let updated = await response.json();
-      expect(updated.stage).toBe('qualification');
+      expect(updated.archived).toBe(true);
 
-      // Move to proposal
+      // Unarchive
       response = await request.patch(`/api/opportunities/${created.id}`, {
         headers: { Cookie: authCookies },
-        data: { stage: 'proposal' },
+        data: { archived: false },
       });
       updated = await response.json();
-      expect(updated.stage).toBe('proposal');
-
-      // Move to negotiation
-      response = await request.patch(`/api/opportunities/${created.id}`, {
-        headers: { Cookie: authCookies },
-        data: { stage: 'negotiation' },
-      });
-      updated = await response.json();
-      expect(updated.stage).toBe('negotiation');
-
-      // Close as won
-      response = await request.patch(`/api/opportunities/${created.id}`, {
-        headers: { Cookie: authCookies },
-        data: { stage: 'closed_won' },
-      });
-      updated = await response.json();
-      expect(updated.stage).toBe('closed_won');
-    });
-  });
-
-  test.describe('Statistics', () => {
-    test('GET /api/opportunities/stats should return statistics', async ({ request }) => {
-      // Создаём несколько opportunities
-      await request.post('/api/opportunities', {
-        headers: { Cookie: authCookies },
-        data: { title: 'Stats Test 1', value: 10000, stage: 'prospecting' },
-      });
-      await request.post('/api/opportunities', {
-        headers: { Cookie: authCookies },
-        data: { title: 'Stats Test 2', value: 20000, stage: 'qualification' },
-      });
-
-      const response = await request.get('/api/opportunities/stats', {
-        headers: { Cookie: authCookies },
-      });
-
-      expect(response.status()).toBe(200);
-      const stats = await response.json();
-
-      expect(stats.totalValue).toBeDefined();
-      expect(stats.totalCount).toBeDefined();
-      expect(stats.byStage).toBeDefined();
-      expect(stats.avgProbability).toBeDefined();
+      expect(updated.archived).toBe(false);
     });
   });
 
   test.describe('Filtering', () => {
-    test('GET /api/opportunities should support stage filter', async ({ request }) => {
+    test('POST /api/opportunities/search should support search filter', async ({ request }) => {
+      // Create unique opportunity
+      const uniqueName = `Unique Search Test ${Date.now()}`;
       await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
-        data: { title: 'Filter Test', value: 5000, stage: 'proposal' },
+        data: { name: uniqueName, amount: 5000 },
       });
 
-      const response = await request.get('/api/opportunities?stage=proposal', {
+      const response = await request.post('/api/opportunities/search', {
         headers: { Cookie: authCookies },
+        data: { search: 'Unique Search Test' },
       });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
 
-      data.opportunities.forEach((opp: { stage: string }) => {
-        expect(opp.stage).toBe('proposal');
+      expect(data.opportunities.length).toBeGreaterThan(0);
+      data.opportunities.forEach((opp: { name: string }) => {
+        expect(opp.name?.toLowerCase()).toContain('unique search test');
       });
     });
 
-    test('GET /api/opportunities should support value range filter', async ({ request }) => {
+    test('POST /api/opportunities/search should support amount range filter', async ({ request }) => {
       await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
-        data: { title: 'High Value', value: 100000 },
+        data: { name: 'High Value', amount: 100000 },
       });
 
-      const response = await request.get('/api/opportunities?minValue=50000', {
+      const response = await request.post('/api/opportunities/search', {
         headers: { Cookie: authCookies },
+        data: { minAmount: 50000 },
       });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
 
-      data.opportunities.forEach((opp: { value: number }) => {
-        expect(opp.value).toBeGreaterThanOrEqual(50000);
+      data.opportunities.forEach((opp: { amount: number }) => {
+        expect(opp.amount).toBeGreaterThanOrEqual(50000);
       });
     });
 
-    test('GET /api/opportunities should support priority filter', async ({ request }) => {
-      await request.post('/api/opportunities', {
+    test('POST /api/opportunities/search should support archived filter', async ({ request }) => {
+      // Create and archive an opportunity
+      const createResponse = await request.post('/api/opportunities', {
         headers: { Cookie: authCookies },
-        data: { title: 'High Priority', value: 30000, priority: 'high' },
+        data: { name: 'Archived Opp', amount: 1000, archived: true },
       });
+      expect(createResponse.status()).toBe(201);
 
-      const response = await request.get('/api/opportunities?priority=high', {
+      const response = await request.post('/api/opportunities/search', {
         headers: { Cookie: authCookies },
+        data: { archived: true },
       });
 
       expect(response.status()).toBe(200);
       const data = await response.json();
 
-      data.opportunities.forEach((opp: { priority: string }) => {
-        expect(opp.priority).toBe('high');
+      data.opportunities.forEach((opp: { archived: boolean }) => {
+        expect(opp.archived).toBe(true);
+      });
+    });
+
+    test('POST /api/opportunities/search should support pagination', async ({ request }) => {
+      const response = await request.post('/api/opportunities/search', {
+        headers: { Cookie: authCookies },
+        data: { page: 1, limit: 5 },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      expect(data.opportunities.length).toBeLessThanOrEqual(5);
+      expect(data.page).toBe(1);
+      expect(data.limit).toBe(5);
+    });
+  });
+
+  test.describe('UTM fields', () => {
+    test('should create opportunity with UTM data', async ({ request }) => {
+      const opportunityData = {
+        name: 'UTM Test Deal',
+        amount: 15000,
+        utm: {
+          source: 'google',
+          medium: 'cpc',
+          campaign: 'summer_sale',
+          term: 'crm software',
+          content: 'banner_v1',
+        },
+      };
+
+      const response = await request.post('/api/opportunities', {
+        headers: { Cookie: authCookies },
+        data: opportunityData,
+      });
+
+      expect(response.status()).toBe(201);
+      const opportunity = await response.json();
+
+      expect(opportunity.utm).toBeDefined();
+      expect(opportunity.utm.source).toBe('google');
+      expect(opportunity.utm.medium).toBe('cpc');
+      expect(opportunity.utm.campaign).toBe('summer_sale');
+    });
+  });
+
+  test.describe('Closing date', () => {
+    test('should create opportunity with closing date', async ({ request }) => {
+      const closingDate = '2025-06-30';
+      const response = await request.post('/api/opportunities', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Dated Deal',
+          amount: 25000,
+          closingDate,
+        },
+      });
+
+      expect(response.status()).toBe(201);
+      const opportunity = await response.json();
+
+      expect(opportunity.closingDate).toBeDefined();
+      expect(opportunity.closingDate).toContain('2025-06-30');
+    });
+
+    test('POST /api/opportunities/search should filter by closing date range', async ({ request }) => {
+      await request.post('/api/opportunities', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Q3 Deal',
+          amount: 30000,
+          closingDate: '2025-08-15',
+        },
+      });
+
+      const response = await request.post('/api/opportunities/search', {
+        headers: { Cookie: authCookies },
+        data: {
+          closingDateFrom: '2025-07-01',
+          closingDateTo: '2025-09-30',
+        },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      data.opportunities.forEach((opp: { closingDate: string }) => {
+        if (opp.closingDate) {
+          const date = new Date(opp.closingDate);
+          expect(date >= new Date('2025-07-01')).toBe(true);
+          expect(date <= new Date('2025-09-30')).toBe(true);
+        }
       });
     });
   });

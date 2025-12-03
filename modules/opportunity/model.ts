@@ -1,91 +1,98 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type OpportunityStage =
-  | 'prospecting'
-  | 'qualification'
-  | 'proposal'
-  | 'negotiation'
-  | 'closed_won'
-  | 'closed_lost';
-
-export type OpportunityPriority = 'low' | 'medium' | 'high';
+// UTM sub-document interface
+export interface IUtm {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  term?: string;
+  content?: string;
+}
 
 export interface IOpportunity extends Document {
   _id: mongoose.Types.ObjectId;
-  title: string;
+  name?: string;
+  amount?: number;
+  closingDate?: Date;
+  utm?: IUtm;
   description?: string;
-  value: number;
-  currency: string;
-  stage: OpportunityStage;
-  priority: OpportunityPriority;
-  probability: number;
-  expectedCloseDate?: Date;
-  actualCloseDate?: Date;
-  contactId?: mongoose.Types.ObjectId;
-  ownerId: mongoose.Types.ObjectId;
-  notes?: string;
-  tags: string[];
+  externalId?: string;
+  archived: boolean;
+  // Relations
+  contact?: mongoose.Types.ObjectId;
+  ownerId?: mongoose.Types.ObjectId;
+  priority?: mongoose.Types.ObjectId;
+  pipelineId?: mongoose.Types.ObjectId;
+  stageId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
+// UTM sub-schema
+const UtmSchema = new Schema<IUtm>(
+  {
+    source: { type: String, trim: true },
+    medium: { type: String, trim: true },
+    campaign: { type: String, trim: true },
+    term: { type: String, trim: true },
+    content: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const OpportunitySchema = new Schema<IOpportunity>(
   {
-    title: {
+    name: {
       type: String,
-      required: true,
       trim: true,
+    },
+    amount: {
+      type: Number,
+      min: 0,
+    },
+    closingDate: {
+      type: Date,
+    },
+    utm: {
+      type: UtmSchema,
     },
     description: {
       type: String,
     },
-    value: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    currency: {
+    externalId: {
       type: String,
-      default: 'USD',
-      uppercase: true,
+      trim: true,
+      index: true,
     },
-    stage: {
-      type: String,
-      enum: ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'],
-      default: 'prospecting',
+    archived: {
+      type: Boolean,
+      default: false,
     },
-    priority: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium',
-    },
-    probability: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
-    expectedCloseDate: {
-      type: Date,
-    },
-    actualCloseDate: {
-      type: Date,
-    },
-    contactId: {
+    // Relations
+    contact: {
       type: Schema.Types.ObjectId,
       ref: 'Contact',
+      index: true,
     },
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      index: true,
     },
-    notes: {
-      type: String,
+    priority: {
+      type: Schema.Types.ObjectId,
+      ref: 'DictionaryItem',
+      index: true,
     },
-    tags: {
-      type: [String],
-      default: [],
+    pipelineId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Pipeline',
+      index: true,
+    },
+    stageId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PipelineStage',
+      index: true,
     },
   },
   {
@@ -93,11 +100,10 @@ const OpportunitySchema = new Schema<IOpportunity>(
   }
 );
 
-OpportunitySchema.index({ ownerId: 1 });
-OpportunitySchema.index({ contactId: 1 });
-OpportunitySchema.index({ stage: 1 });
-OpportunitySchema.index({ expectedCloseDate: 1 });
-OpportunitySchema.index({ title: 'text', description: 'text' });
+// Indexes
+OpportunitySchema.index({ archived: 1 });
+OpportunitySchema.index({ closingDate: 1 });
+OpportunitySchema.index({ name: 'text', description: 'text' });
 
 const Opportunity: Model<IOpportunity> =
   mongoose.models.Opportunity || mongoose.model<IOpportunity>('Opportunity', OpportunitySchema);

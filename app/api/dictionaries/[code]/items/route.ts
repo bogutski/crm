@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/modules/user';
 import {
   getDictionaryItems,
   getDictionaryItemsTree,
@@ -8,6 +7,7 @@ import {
   createDictionaryItemSchema,
   updateItemsOrderSchema,
 } from '@/modules/dictionary';
+import { apiAuth } from '@/lib/api-auth';
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -15,8 +15,8 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -43,8 +43,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // Обновление порядка элементов (для drag-and-drop)
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

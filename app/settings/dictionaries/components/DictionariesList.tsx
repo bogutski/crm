@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { DictionaryForm } from './DictionaryForm';
+import { Badge } from '@/components/ui/Badge';
 
 interface DictionaryField {
   code: string;
@@ -35,7 +36,11 @@ export function DictionariesList() {
 
   const fetchDictionaries = useCallback(async () => {
     try {
-      const response = await fetch('/api/dictionaries');
+      const response = await fetch('/api/dictionaries/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
       const data = await response.json();
       setDictionaries(data.dictionaries || []);
     } catch (error) {
@@ -86,8 +91,9 @@ export function DictionariesList() {
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-zinc-50 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg transition-colors"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors flex items-center gap-2"
         >
+          <Plus className="w-5 h-5" />
           Создать словарь
         </button>
       </div>
@@ -155,9 +161,9 @@ export function DictionariesList() {
                   </td>
                   <td className="px-4 py-3">
                     {dict.allowHierarchy && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                      <Badge rounded="md">
                         Иерархия
-                      </span>
+                      </Badge>
                     )}
                   </td>
                   <td className="px-4 py-3">

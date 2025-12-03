@@ -24,6 +24,15 @@ export interface IPhone {
   lastSmsAt?: Date;
 }
 
+export interface IContactType {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  properties: {
+    color?: string;
+    [key: string]: unknown;
+  };
+}
+
 export interface IContact extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -32,7 +41,7 @@ export interface IContact extends Document {
   company?: string;
   position?: string;
   notes?: string;
-  contactType?: string; // код из словаря contact_types
+  contactType?: mongoose.Types.ObjectId | IContactType; // ссылка на DictionaryItem
   source?: string; // код из словаря sources
   ownerId: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -141,9 +150,8 @@ const ContactSchema = new Schema<IContact>(
       type: String,
     },
     contactType: {
-      type: String,
-      trim: true,
-      lowercase: true,
+      type: Schema.Types.ObjectId,
+      ref: 'DictionaryItem',
       index: true,
     },
     source: {

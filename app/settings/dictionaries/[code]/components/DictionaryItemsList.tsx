@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Pencil, Trash2, GripVertical } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, Plus } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { DictionaryItemForm } from './DictionaryItemForm';
+import { Badge } from '@/components/ui/Badge';
 
 interface DictionaryField {
   code: string;
@@ -220,8 +221,9 @@ export function DictionaryItemsList({ dictionaryCode }: DictionaryItemsListProps
         </div>
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-zinc-50 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg transition-colors"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors flex items-center gap-2"
         >
+          <Plus className="w-5 h-5" />
           Добавить элемент
         </button>
       </div>
@@ -294,15 +296,13 @@ export function DictionaryItemsList({ dictionaryCode }: DictionaryItemsListProps
                     </td>
                   ))}
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleToggleActive(item)}
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        item.isActive
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                      }`}
-                    >
-                      {item.isActive ? 'Активен' : 'Скрыт'}
+                    <button onClick={() => handleToggleActive(item)}>
+                      <Badge
+                        variant={item.isActive ? 'success' : 'default'}
+                        rounded="md"
+                      >
+                        {item.isActive ? 'Активен' : 'Скрыт'}
+                      </Badge>
                     </button>
                   </td>
                   <td className="px-4 py-3">

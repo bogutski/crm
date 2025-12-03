@@ -68,9 +68,10 @@ test.describe('Dictionaries API', () => {
       expect(dictionary.id).toBeDefined();
     });
 
-    test('GET /api/dictionaries should return dictionaries list', async ({ request }) => {
-      const response = await request.get('/api/dictionaries', {
+    test('POST /api/dictionaries/search should return dictionaries list', async ({ request }) => {
+      const response = await request.post('/api/dictionaries/search', {
         headers: { Cookie: authCookies },
+        data: {},
       });
 
       expect(response.status()).toBe(200);

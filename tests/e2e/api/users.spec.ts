@@ -27,11 +27,12 @@ test.describe('Users API', () => {
   });
 
   test.describe('Unauthorized access', () => {
-    test('GET /api/users should redirect to login without auth', async ({ playwright }) => {
+    test('POST /api/users/search should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
         baseURL: 'http://localhost:3001',
       });
-      const response = await context.get('/api/users', {
+      const response = await context.post('/api/users/search', {
+        data: {},
         maxRedirects: 0,
       });
       expect(response.status()).toBe(307);
@@ -66,9 +67,10 @@ test.describe('Users API', () => {
   });
 
   test.describe('List users', () => {
-    test('GET /api/users should return users list', async ({ request }) => {
-      const response = await request.get('/api/users', {
+    test('POST /api/users/search should return users list', async ({ request }) => {
+      const response = await request.post('/api/users/search', {
         headers: { Cookie: authCookies },
+        data: {},
       });
 
       expect(response.status()).toBe(200);
@@ -81,10 +83,11 @@ test.describe('Users API', () => {
       expect(data.limit).toBe(20);
     });
 
-    test('GET /api/users should support search filter', async ({ request }) => {
+    test('POST /api/users/search should support search filter', async ({ request }) => {
       // Текущий пользователь должен найтись по имени
-      const response = await request.get('/api/users?search=Test', {
+      const response = await request.post('/api/users/search', {
         headers: { Cookie: authCookies },
+        data: { search: 'Test' },
       });
 
       expect(response.status()).toBe(200);
@@ -93,9 +96,10 @@ test.describe('Users API', () => {
       expect(data.users.length).toBeGreaterThanOrEqual(1);
     });
 
-    test('GET /api/users should support pagination', async ({ request }) => {
-      const response = await request.get('/api/users?page=1&limit=5', {
+    test('POST /api/users/search should support pagination', async ({ request }) => {
+      const response = await request.post('/api/users/search', {
         headers: { Cookie: authCookies },
+        data: { page: 1, limit: 5 },
       });
 
       expect(response.status()).toBe(200);
@@ -106,9 +110,10 @@ test.describe('Users API', () => {
       expect(data.users.length).toBeLessThanOrEqual(5);
     });
 
-    test('GET /api/users should support role filter', async ({ request }) => {
-      const response = await request.get('/api/users?role=user', {
+    test('POST /api/users/search should support role filter', async ({ request }) => {
+      const response = await request.post('/api/users/search', {
         headers: { Cookie: authCookies },
+        data: { role: 'user' },
       });
 
       expect(response.status()).toBe(200);

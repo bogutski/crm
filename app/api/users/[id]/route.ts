@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  auth,
   getUserById,
   updateUser,
   deleteUser,
   updateUserSchema,
 } from '@/modules/user';
+import { apiAuth } from '@/lib/api-auth';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -13,8 +13,8 @@ interface Params {
 
 export async function GET(request: NextRequest, { params }: Params) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -67,8 +67,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
-    const session = await auth();
-    if (!session) {
+    const authResult = await apiAuth(request);
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

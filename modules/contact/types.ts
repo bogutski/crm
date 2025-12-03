@@ -1,44 +1,32 @@
-import { IContact, IEmail, IPhone } from './model';
+// Реэкспорт типов модели
+export type { IContact, IEmail, IPhone, IContactType } from './model';
 
-export type { IContact, IEmail, IPhone };
+import { IEmail, IPhone } from './model';
 
-export interface EmailDTO {
-  address: string;
-  isVerified?: boolean;
-  isSubscribed?: boolean;
-  unsubscribedAt?: Date;
-  bouncedAt?: Date;
-  lastEmailedAt?: Date;
-}
+// === DTO для контроллера ===
 
-export interface PhoneDTO {
-  e164: string;
-  international: string;
-  country: string;
-  type?: 'MOBILE' | 'FIXED_LINE' | 'UNKNOWN';
-  isPrimary?: boolean;
-  isVerified?: boolean;
-  isSubscribed?: boolean;
-  unsubscribedAt?: Date;
-  lastSmsAt?: Date;
+export interface ContactTypeResponse {
+  id: string;
+  name: string;
+  color?: string;
 }
 
 export interface CreateContactDTO {
   name: string;
-  emails?: EmailDTO[];
-  phones?: PhoneDTO[];
+  emails?: IEmail[];
+  phones?: IPhone[];
   company?: string;
   position?: string;
   notes?: string;
   contactType?: string;
   source?: string;
-  ownerId: string;
+  ownerId?: string;
 }
 
 export interface UpdateContactDTO {
   name?: string;
-  emails?: EmailDTO[];
-  phones?: PhoneDTO[];
+  emails?: IEmail[];
+  phones?: IPhone[];
   company?: string;
   position?: string;
   notes?: string;
@@ -54,7 +42,7 @@ export interface ContactResponse {
   company?: string;
   position?: string;
   notes?: string;
-  contactType?: string;
+  contactType?: ContactTypeResponse | null;
   source?: string;
   ownerId: string;
   createdAt: Date;

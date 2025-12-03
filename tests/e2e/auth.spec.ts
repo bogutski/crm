@@ -110,9 +110,10 @@ test.describe('Authentication', () => {
       await page.getByLabel('Email').fill('test@example.com');
       await page.getByLabel('Пароль').fill('123'); // Too short
 
-      // HTML5 validation should prevent submission
-      const passwordInput = page.getByLabel('Пароль');
-      await expect(passwordInput).toHaveAttribute('minLength', '6');
+      await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+
+      // Zod validation should show error
+      await expect(page.getByText('Минимум 6 символов')).toBeVisible();
     });
   });
 

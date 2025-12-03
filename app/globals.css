@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ColorSelect variables */
+  --select-bg: #ffffff;
+  --select-text: #18181b;
+  --select-border: #d4d4d8;
+  --select-border-hover: #a1a1aa;
+  --select-placeholder: #a1a1aa;
+  --select-option-hover: #f4f4f5;
+  --select-option-active: #e4e4e7;
+  --select-indicator: #71717a;
+  --select-indicator-hover: #52525b;
 }
 
 @theme inline {
@@ -16,6 +27,17 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    /* ColorSelect dark theme */
+    --select-bg: #27272a;
+    --select-text: #fafafa;
+    --select-border: #3f3f46;
+    --select-border-hover: #52525b;
+    --select-placeholder: #71717a;
+    --select-option-hover: #3f3f46;
+    --select-option-active: #52525b;
+    --select-indicator: #a1a1aa;
+    --select-indicator-hover: #d4d4d8;
   }
 }
 

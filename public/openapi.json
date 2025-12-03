@@ -1,0 +1,4755 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CRM Proto API",
+    "version": "1.0.0",
+    "description": "# CRM Proto API\n\nREST API для CRM системы.\n\n## Аутентификация\n\nAPI использует cookie-based аутентификацию через NextAuth.js.\nДля доступа к защищённым эндпоинтам необходимо авторизоваться через `/login`.\n\n## Ошибки\n\nВсе ошибки возвращаются в формате:\n\n```json\n{\n  \"error\": \"Описание ошибки\"\n}\n```\n\nСтандартные коды ответов:\n- `200` - Успешный запрос\n- `201` - Ресурс создан\n- `400` - Неверный запрос (ошибка валидации)\n- `401` - Не авторизован\n- `403` - Доступ запрещён\n- `404` - Ресурс не найден\n- `500` - Внутренняя ошибка сервера"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development"
+    }
+  ],
+  "paths": {
+    "/api/contacts/search": {
+      "post": {
+        "summary": "Поиск контактов",
+        "description": "Возвращает список контактов с пагинацией и возможностью фильтрации. Фильтры передаются в теле запроса.",
+        "tags": [
+          "Контакты"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Имя контакта"
+                          },
+                          "emails": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "address": {
+                                  "type": "string",
+                                  "description": "Email адрес",
+                                  "format": "email"
+                                },
+                                "isVerified": {
+                                  "type": "boolean",
+                                  "default": false
+                                },
+                                "isSubscribed": {
+                                  "type": "boolean",
+                                  "default": true
+                                },
+                                "unsubscribedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "bouncedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "lastEmailedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              },
+                              "required": [
+                                "address"
+                              ],
+                              "description": "Email контакта"
+                            },
+                            "description": "Список email адресов"
+                          },
+                          "phones": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "e164": {
+                                  "type": "string",
+                                  "description": "Номер в формате E.164 (+71234567890)",
+                                  "minLength": 1
+                                },
+                                "international": {
+                                  "type": "string",
+                                  "description": "Международный формат (+7 123 456-78-90)",
+                                  "minLength": 1
+                                },
+                                "country": {
+                                  "type": "string",
+                                  "description": "Код страны ISO 3166-1 alpha-2"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "MOBILE",
+                                    "FIXED_LINE",
+                                    "UNKNOWN"
+                                  ],
+                                  "description": "Тип телефона",
+                                  "default": "UNKNOWN"
+                                },
+                                "isPrimary": {
+                                  "type": "boolean",
+                                  "default": false
+                                },
+                                "isVerified": {
+                                  "type": "boolean",
+                                  "default": false
+                                },
+                                "isSubscribed": {
+                                  "type": "boolean",
+                                  "default": true
+                                },
+                                "unsubscribedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "lastSmsAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              },
+                              "required": [
+                                "e164",
+                                "international",
+                                "country"
+                              ],
+                              "description": "Телефон контакта"
+                            },
+                            "description": "Список телефонов"
+                          },
+                          "company": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "string"
+                          },
+                          "notes": {
+                            "type": "string"
+                          },
+                          "contactType": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "ID типа контакта"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Название типа"
+                              },
+                              "color": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "description": "Тип контакта",
+                            "nullable": true
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "ownerId": {
+                            "type": "string",
+                            "description": "ID владельца"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата обновления"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "emails",
+                          "phones",
+                          "ownerId",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "description": "Контакт"
+                      },
+                      "description": "Список контактов"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    },
+                    "page": {
+                      "type": "number",
+                      "description": "Текущая страница"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Размер страницы"
+                    }
+                  },
+                  "required": [
+                    "contacts",
+                    "total",
+                    "page",
+                    "limit"
+                  ],
+                  "description": "Список контактов с пагинацией"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "clx1234567890abcdef",
+                      "firstName": "Иван",
+                      "lastName": "Петров",
+                      "middleName": "Сергеевич",
+                      "email": "ivan.petrov@example.com",
+                      "phone": "+7 (999) 123-45-67",
+                      "company": "ООО \"Технологии\"",
+                      "position": "Технический директор",
+                      "type": "client",
+                      "source": "website",
+                      "ownerId": "clx0987654321fedcba",
+                      "createdAt": "2024-01-15T10:30:00.000Z",
+                      "updatedAt": "2024-01-15T10:30:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": {
+                    "type": "string"
+                  },
+                  "ownerId": {
+                    "type": "string"
+                  },
+                  "contactType": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "page": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 30
+                  }
+                },
+                "description": "Фильтры для списка контактов"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contacts": {
+      "post": {
+        "summary": "Создать контакт",
+        "description": "Создаёт нового контакта. Владельцем автоматически становится текущий пользователь.",
+        "tags": [
+          "Контакты"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Имя контакта"
+                    },
+                    "emails": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "description": "Email адрес",
+                            "format": "email"
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isSubscribed": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "unsubscribedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "bouncedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastEmailedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "address"
+                        ],
+                        "description": "Email контакта"
+                      },
+                      "description": "Список email адресов"
+                    },
+                    "phones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "e164": {
+                            "type": "string",
+                            "description": "Номер в формате E.164 (+71234567890)",
+                            "minLength": 1
+                          },
+                          "international": {
+                            "type": "string",
+                            "description": "Международный формат (+7 123 456-78-90)",
+                            "minLength": 1
+                          },
+                          "country": {
+                            "type": "string",
+                            "description": "Код страны ISO 3166-1 alpha-2"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "MOBILE",
+                              "FIXED_LINE",
+                              "UNKNOWN"
+                            ],
+                            "description": "Тип телефона",
+                            "default": "UNKNOWN"
+                          },
+                          "isPrimary": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isSubscribed": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "unsubscribedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastSmsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "e164",
+                          "international",
+                          "country"
+                        ],
+                        "description": "Телефон контакта"
+                      },
+                      "description": "Список телефонов"
+                    },
+                    "company": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "contactType": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID типа контакта"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название типа"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Тип контакта",
+                      "nullable": true
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string",
+                      "description": "ID владельца"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "emails",
+                    "phones",
+                    "ownerId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Контакт"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "firstName": "Иван",
+                  "lastName": "Петров",
+                  "middleName": "Сергеевич",
+                  "email": "ivan.petrov@example.com",
+                  "phone": "+7 (999) 123-45-67",
+                  "company": "ООО \"Технологии\"",
+                  "position": "Технический директор",
+                  "type": "client",
+                  "source": "website",
+                  "ownerId": "clx0987654321fedcba",
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "updatedAt": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Имя контакта",
+                    "minLength": 1
+                  },
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "address": {
+                          "type": "string",
+                          "description": "Email адрес",
+                          "format": "email"
+                        },
+                        "isVerified": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "isSubscribed": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "unsubscribedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "bouncedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastEmailedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "address"
+                      ],
+                      "description": "Email контакта"
+                    },
+                    "default": []
+                  },
+                  "phones": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "e164": {
+                          "type": "string",
+                          "description": "Номер в формате E.164 (+71234567890)",
+                          "minLength": 1
+                        },
+                        "international": {
+                          "type": "string",
+                          "description": "Международный формат (+7 123 456-78-90)",
+                          "minLength": 1
+                        },
+                        "country": {
+                          "type": "string",
+                          "description": "Код страны ISO 3166-1 alpha-2"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "MOBILE",
+                            "FIXED_LINE",
+                            "UNKNOWN"
+                          ],
+                          "description": "Тип телефона",
+                          "default": "UNKNOWN"
+                        },
+                        "isPrimary": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "isVerified": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "isSubscribed": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "unsubscribedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastSmsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "e164",
+                        "international",
+                        "country"
+                      ],
+                      "description": "Телефон контакта"
+                    },
+                    "default": []
+                  },
+                  "company": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "contactType": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "description": "Данные для создания контакта"
+              },
+              "example": {
+                "firstName": "Иван",
+                "lastName": "Петров",
+                "middleName": "Сергеевич",
+                "email": "ivan.petrov@example.com",
+                "phone": "+7 (999) 123-45-67",
+                "company": "ООО \"Технологии\"",
+                "position": "Технический директор",
+                "type": "client",
+                "source": "website"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contacts/{id}": {
+      "get": {
+        "summary": "Получить контакт по ID",
+        "description": "Возвращает детальную информацию о контакте.",
+        "tags": [
+          "Контакты"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Имя контакта"
+                    },
+                    "emails": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "description": "Email адрес",
+                            "format": "email"
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isSubscribed": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "unsubscribedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "bouncedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastEmailedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "address"
+                        ],
+                        "description": "Email контакта"
+                      },
+                      "description": "Список email адресов"
+                    },
+                    "phones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "e164": {
+                            "type": "string",
+                            "description": "Номер в формате E.164 (+71234567890)",
+                            "minLength": 1
+                          },
+                          "international": {
+                            "type": "string",
+                            "description": "Международный формат (+7 123 456-78-90)",
+                            "minLength": 1
+                          },
+                          "country": {
+                            "type": "string",
+                            "description": "Код страны ISO 3166-1 alpha-2"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "MOBILE",
+                              "FIXED_LINE",
+                              "UNKNOWN"
+                            ],
+                            "description": "Тип телефона",
+                            "default": "UNKNOWN"
+                          },
+                          "isPrimary": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isSubscribed": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "unsubscribedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastSmsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "e164",
+                          "international",
+                          "country"
+                        ],
+                        "description": "Телефон контакта"
+                      },
+                      "description": "Список телефонов"
+                    },
+                    "company": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "contactType": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID типа контакта"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название типа"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Тип контакта",
+                      "nullable": true
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string",
+                      "description": "ID владельца"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "emails",
+                    "phones",
+                    "ownerId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Контакт"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "firstName": "Иван",
+                  "lastName": "Петров",
+                  "middleName": "Сергеевич",
+                  "email": "ivan.petrov@example.com",
+                  "phone": "+7 (999) 123-45-67",
+                  "company": "ООО \"Технологии\"",
+                  "position": "Технический директор",
+                  "type": "client",
+                  "source": "website",
+                  "ownerId": "clx0987654321fedcba",
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "updatedAt": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID контакта"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Обновить контакт",
+        "description": "Частично обновляет данные контакта. Передаются только изменяемые поля.",
+        "tags": [
+          "Контакты"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Имя контакта"
+                    },
+                    "emails": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "description": "Email адрес",
+                            "format": "email"
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isSubscribed": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "unsubscribedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "bouncedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastEmailedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "address"
+                        ],
+                        "description": "Email контакта"
+                      },
+                      "description": "Список email адресов"
+                    },
+                    "phones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "e164": {
+                            "type": "string",
+                            "description": "Номер в формате E.164 (+71234567890)",
+                            "minLength": 1
+                          },
+                          "international": {
+                            "type": "string",
+                            "description": "Международный формат (+7 123 456-78-90)",
+                            "minLength": 1
+                          },
+                          "country": {
+                            "type": "string",
+                            "description": "Код страны ISO 3166-1 alpha-2"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "MOBILE",
+                              "FIXED_LINE",
+                              "UNKNOWN"
+                            ],
+                            "description": "Тип телефона",
+                            "default": "UNKNOWN"
+                          },
+                          "isPrimary": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "isSubscribed": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "unsubscribedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastSmsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "e164",
+                          "international",
+                          "country"
+                        ],
+                        "description": "Телефон контакта"
+                      },
+                      "description": "Список телефонов"
+                    },
+                    "company": {
+                      "type": "string"
+                    },
+                    "position": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "contactType": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID типа контакта"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Название типа"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "description": "Тип контакта",
+                      "nullable": true
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string",
+                      "description": "ID владельца"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "emails",
+                    "phones",
+                    "ownerId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Контакт"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "firstName": "Иван",
+                  "lastName": "Петров",
+                  "middleName": "Сергеевич",
+                  "email": "ivan.petrov@example.com",
+                  "phone": "+7 (999) 987-65-43",
+                  "company": "ООО \"Технологии\"",
+                  "position": "Генеральный директор",
+                  "type": "client",
+                  "source": "website",
+                  "ownerId": "clx0987654321fedcba",
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "updatedAt": "2024-01-15T10:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID контакта"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "address": {
+                          "type": "string",
+                          "description": "Email адрес",
+                          "format": "email"
+                        },
+                        "isVerified": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "isSubscribed": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "unsubscribedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "bouncedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastEmailedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "address"
+                      ],
+                      "description": "Email контакта"
+                    }
+                  },
+                  "phones": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "e164": {
+                          "type": "string",
+                          "description": "Номер в формате E.164 (+71234567890)",
+                          "minLength": 1
+                        },
+                        "international": {
+                          "type": "string",
+                          "description": "Международный формат (+7 123 456-78-90)",
+                          "minLength": 1
+                        },
+                        "country": {
+                          "type": "string",
+                          "description": "Код страны ISO 3166-1 alpha-2"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "MOBILE",
+                            "FIXED_LINE",
+                            "UNKNOWN"
+                          ],
+                          "description": "Тип телефона",
+                          "default": "UNKNOWN"
+                        },
+                        "isPrimary": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "isVerified": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "isSubscribed": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "unsubscribedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastSmsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "e164",
+                        "international",
+                        "country"
+                      ],
+                      "description": "Телефон контакта"
+                    }
+                  },
+                  "company": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "contactType": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "source": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "description": "Данные для обновления контакта"
+              },
+              "example": {
+                "phone": "+7 (999) 987-65-43",
+                "position": "Генеральный директор"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить контакт",
+        "description": "Полностью удаляет контакт из системы.",
+        "tags": [
+          "Контакты"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID контакта"
+          }
+        ]
+      }
+    },
+    "/api/users/search": {
+      "post": {
+        "summary": "Поиск пользователей",
+        "description": "Возвращает список пользователей с пагинацией. Фильтры передаются в теле запроса. Доступно только администраторам.",
+        "tags": [
+          "Пользователи"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "email": {
+                            "type": "string",
+                            "description": "Email"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Имя"
+                          },
+                          "image": {
+                            "type": "string"
+                          },
+                          "roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "admin",
+                                "manager",
+                                "user"
+                              ],
+                              "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                            },
+                            "description": "Список ролей"
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "Активен ли пользователь"
+                          },
+                          "lastLoginAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата обновления"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "email",
+                          "name",
+                          "roles",
+                          "isActive",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "description": "Пользователь"
+                      },
+                      "description": "Список пользователей"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    },
+                    "page": {
+                      "type": "number",
+                      "description": "Текущая страница"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Размер страницы"
+                    }
+                  },
+                  "required": [
+                    "users",
+                    "total",
+                    "page",
+                    "limit"
+                  ],
+                  "description": "Список пользователей с пагинацией"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "clx1234567890abcdef",
+                      "email": "admin@example.com",
+                      "name": "Администратор Системы",
+                      "role": "admin",
+                      "isActive": true,
+                      "createdAt": "2024-01-10T08:00:00.000Z",
+                      "updatedAt": "2024-01-10T08:00:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "manager",
+                      "user"
+                    ],
+                    "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "page": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 20
+                  }
+                },
+                "description": "Фильтры для списка пользователей"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "post": {
+        "summary": "Создать пользователя",
+        "description": "Создаёт нового пользователя. Доступно только администраторам.",
+        "tags": [
+          "Пользователи"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "Email"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Имя"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "admin",
+                          "manager",
+                          "user"
+                        ],
+                        "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                      },
+                      "description": "Список ролей"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли пользователь"
+                    },
+                    "lastLoginAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "name",
+                    "roles",
+                    "isActive",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Пользователь"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "email": "manager@example.com",
+                  "name": "Менеджер Продаж",
+                  "role": "manager",
+                  "isActive": true,
+                  "createdAt": "2024-01-10T08:00:00.000Z",
+                  "updatedAt": "2024-01-10T08:00:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Email пользователя",
+                    "format": "email"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Имя пользователя",
+                    "minLength": 2
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "admin",
+                        "manager",
+                        "user"
+                      ],
+                      "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                    }
+                  },
+                  "googleId": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "required": [
+                  "email",
+                  "name"
+                ],
+                "description": "Данные для создания пользователя"
+              },
+              "example": {
+                "email": "manager@example.com",
+                "name": "Менеджер Продаж",
+                "password": "securePassword123",
+                "role": "manager"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "summary": "Получить пользователя по ID",
+        "description": "Возвращает информацию о пользователе.",
+        "tags": [
+          "Пользователи"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "Email"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Имя"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "admin",
+                          "manager",
+                          "user"
+                        ],
+                        "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                      },
+                      "description": "Список ролей"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли пользователь"
+                    },
+                    "lastLoginAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "name",
+                    "roles",
+                    "isActive",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Пользователь"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "email": "admin@example.com",
+                  "name": "Администратор Системы",
+                  "role": "admin",
+                  "isActive": true,
+                  "createdAt": "2024-01-10T08:00:00.000Z",
+                  "updatedAt": "2024-01-10T08:00:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID пользователя"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Обновить пользователя",
+        "description": "Обновляет данные пользователя. Доступно только администраторам.",
+        "tags": [
+          "Пользователи"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "Email"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Имя"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "admin",
+                          "manager",
+                          "user"
+                        ],
+                        "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                      },
+                      "description": "Список ролей"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли пользователь"
+                    },
+                    "lastLoginAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "name",
+                    "roles",
+                    "isActive",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Пользователь"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "email": "admin@example.com",
+                  "name": "Старший менеджер",
+                  "role": "admin",
+                  "isActive": true,
+                  "createdAt": "2024-01-10T08:00:00.000Z",
+                  "updatedAt": "2024-01-10T08:00:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID пользователя"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "admin",
+                        "manager",
+                        "user"
+                      ],
+                      "description": "Роль пользователя: admin - администратор, manager - менеджер, user - пользователь"
+                    }
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "description": "Данные для обновления пользователя"
+              },
+              "example": {
+                "name": "Старший менеджер",
+                "role": "admin"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить пользователя",
+        "description": "Удаляет пользователя из системы. Доступно только администраторам.",
+        "tags": [
+          "Пользователи"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID пользователя"
+          }
+        ]
+      }
+    },
+    "/api/opportunities/search": {
+      "post": {
+        "summary": "Поиск сделок",
+        "description": "Возвращает список сделок с пагинацией и фильтрацией. Фильтры передаются в теле запроса.",
+        "tags": [
+          "Сделки"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "opportunities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Название"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "Сумма"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "description": "Валюта"
+                          },
+                          "stage": {
+                            "type": "string",
+                            "enum": [
+                              "prospecting",
+                              "qualification",
+                              "proposal",
+                              "negotiation",
+                              "closed_won",
+                              "closed_lost"
+                            ],
+                            "description": "Стадия"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high"
+                            ],
+                            "description": "Приоритет"
+                          },
+                          "probability": {
+                            "type": "number",
+                            "description": "Вероятность закрытия"
+                          },
+                          "expectedCloseDate": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "actualCloseDate": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "contactId": {
+                            "type": "string"
+                          },
+                          "ownerId": {
+                            "type": "string",
+                            "description": "ID владельца"
+                          },
+                          "notes": {
+                            "type": "string"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Теги"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата обновления"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "value",
+                          "currency",
+                          "stage",
+                          "priority",
+                          "probability",
+                          "ownerId",
+                          "tags",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "description": "Сделка"
+                      },
+                      "description": "Список сделок"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    },
+                    "page": {
+                      "type": "number",
+                      "description": "Текущая страница"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Размер страницы"
+                    }
+                  },
+                  "required": [
+                    "opportunities",
+                    "total",
+                    "page",
+                    "limit"
+                  ],
+                  "description": "Список сделок с пагинацией"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "clx1234567890abcdef",
+                      "title": "Внедрение CRM системы",
+                      "description": "Проект по внедрению CRM для автоматизации продаж",
+                      "amount": 1500000,
+                      "currency": "USD",
+                      "stage": "negotiation",
+                      "priority": "high",
+                      "probability": 70,
+                      "expectedCloseDate": "2024-03-15",
+                      "contactId": "clx0987654321fedcba",
+                      "ownerId": "clxowner123456789ab",
+                      "contact": {
+                        "id": "clx0987654321fedcba",
+                        "firstName": "Иван",
+                        "lastName": "Петров",
+                        "company": "ООО \"Технологии\""
+                      },
+                      "createdAt": "2024-01-20T14:00:00.000Z",
+                      "updatedAt": "2024-02-01T09:30:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 20,
+                  "totalPages": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": {
+                    "type": "string"
+                  },
+                  "stage": {
+                    "type": "string",
+                    "enum": [
+                      "prospecting",
+                      "qualification",
+                      "proposal",
+                      "negotiation",
+                      "closed_won",
+                      "closed_lost"
+                    ],
+                    "description": "Стадия сделки: prospecting - поиск, qualification - квалификация, proposal - предложение, negotiation - переговоры, closed_won - выиграна, closed_lost - проиграна"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
+                    "description": "Приоритет: low - низкий, medium - средний, high - высокий"
+                  },
+                  "ownerId": {
+                    "type": "string"
+                  },
+                  "contactId": {
+                    "type": "string"
+                  },
+                  "minValue": {
+                    "type": "number"
+                  },
+                  "maxValue": {
+                    "type": "number"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "page": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 20
+                  }
+                },
+                "description": "Фильтры для списка сделок"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/opportunities": {
+      "post": {
+        "summary": "Создать сделку",
+        "description": "Создаёт новую сделку. Владельцем автоматически становится текущий пользователь.",
+        "tags": [
+          "Сделки"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number",
+                      "description": "Сумма"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "description": "Валюта"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "prospecting",
+                        "qualification",
+                        "proposal",
+                        "negotiation",
+                        "closed_won",
+                        "closed_lost"
+                      ],
+                      "description": "Стадия"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ],
+                      "description": "Приоритет"
+                    },
+                    "probability": {
+                      "type": "number",
+                      "description": "Вероятность закрытия"
+                    },
+                    "expectedCloseDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "actualCloseDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "contactId": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string",
+                      "description": "ID владельца"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Теги"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "value",
+                    "currency",
+                    "stage",
+                    "priority",
+                    "probability",
+                    "ownerId",
+                    "tags",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Сделка"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "title": "Внедрение CRM системы",
+                  "description": "Проект по внедрению CRM для автоматизации продаж",
+                  "amount": 1500000,
+                  "currency": "USD",
+                  "stage": "negotiation",
+                  "priority": "high",
+                  "probability": 70,
+                  "expectedCloseDate": "2024-03-15",
+                  "contactId": "clx0987654321fedcba",
+                  "ownerId": "clxowner123456789ab",
+                  "contact": {
+                    "id": "clx0987654321fedcba",
+                    "firstName": "Иван",
+                    "lastName": "Петров",
+                    "company": "ООО \"Технологии\""
+                  },
+                  "createdAt": "2024-01-20T14:00:00.000Z",
+                  "updatedAt": "2024-02-01T09:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Название сделки",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "number",
+                    "description": "Сумма сделки",
+                    "minimum": 0
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "stage": {
+                    "type": "string",
+                    "enum": [
+                      "prospecting",
+                      "qualification",
+                      "proposal",
+                      "negotiation",
+                      "closed_won",
+                      "closed_lost"
+                    ],
+                    "description": "Стадия сделки: prospecting - поиск, qualification - квалификация, proposal - предложение, negotiation - переговоры, closed_won - выиграна, closed_lost - проиграна"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
+                    "description": "Приоритет: low - низкий, medium - средний, high - высокий"
+                  },
+                  "probability": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "expectedCloseDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "contactId": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "title",
+                  "value"
+                ],
+                "description": "Данные для создания сделки"
+              },
+              "example": {
+                "title": "Внедрение CRM системы",
+                "description": "Проект по внедрению CRM для автоматизации продаж",
+                "amount": 1500000,
+                "currency": "USD",
+                "stage": "qualification",
+                "priority": "high",
+                "probability": 30,
+                "expectedCloseDate": "2024-03-15",
+                "contactId": "clx0987654321fedcba"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/opportunities/stats": {
+      "get": {
+        "summary": "Получить статистику по сделкам",
+        "description": "Возвращает агрегированную статистику: общая сумма, количество по стадиям, средняя вероятность.",
+        "tags": [
+          "Сделки"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalValue": {
+                      "type": "number",
+                      "description": "Общая сумма всех сделок"
+                    },
+                    "totalCount": {
+                      "type": "number",
+                      "description": "Общее количество сделок"
+                    },
+                    "byStage": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "number",
+                            "description": "Количество сделок"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "Сумма сделок"
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "value"
+                        ],
+                        "description": "Статистика по стадии"
+                      },
+                      "description": "Статистика по стадиям"
+                    },
+                    "avgProbability": {
+                      "type": "number",
+                      "description": "Средняя вероятность"
+                    }
+                  },
+                  "required": [
+                    "totalValue",
+                    "totalCount",
+                    "byStage",
+                    "avgProbability"
+                  ],
+                  "description": "Статистика по сделкам"
+                },
+                "example": {
+                  "totalAmount": 5500000,
+                  "averageProbability": 55,
+                  "countByStage": {
+                    "lead": 10,
+                    "qualification": 5,
+                    "proposal": 8,
+                    "negotiation": 3,
+                    "closed_won": 15,
+                    "closed_lost": 7
+                  },
+                  "totalCount": 48
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ownerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID владельца для фильтрации"
+          }
+        ]
+      }
+    },
+    "/api/opportunities/{id}": {
+      "get": {
+        "summary": "Получить сделку по ID",
+        "description": "Возвращает детальную информацию о сделке.",
+        "tags": [
+          "Сделки"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number",
+                      "description": "Сумма"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "description": "Валюта"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "prospecting",
+                        "qualification",
+                        "proposal",
+                        "negotiation",
+                        "closed_won",
+                        "closed_lost"
+                      ],
+                      "description": "Стадия"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ],
+                      "description": "Приоритет"
+                    },
+                    "probability": {
+                      "type": "number",
+                      "description": "Вероятность закрытия"
+                    },
+                    "expectedCloseDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "actualCloseDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "contactId": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string",
+                      "description": "ID владельца"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Теги"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "value",
+                    "currency",
+                    "stage",
+                    "priority",
+                    "probability",
+                    "ownerId",
+                    "tags",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Сделка"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "title": "Внедрение CRM системы",
+                  "description": "Проект по внедрению CRM для автоматизации продаж",
+                  "amount": 1500000,
+                  "currency": "USD",
+                  "stage": "negotiation",
+                  "priority": "high",
+                  "probability": 70,
+                  "expectedCloseDate": "2024-03-15",
+                  "contactId": "clx0987654321fedcba",
+                  "ownerId": "clxowner123456789ab",
+                  "contact": {
+                    "id": "clx0987654321fedcba",
+                    "firstName": "Иван",
+                    "lastName": "Петров",
+                    "company": "ООО \"Технологии\""
+                  },
+                  "createdAt": "2024-01-20T14:00:00.000Z",
+                  "updatedAt": "2024-02-01T09:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID сделки"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Обновить сделку",
+        "description": "Частично обновляет данные сделки.",
+        "tags": [
+          "Сделки"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number",
+                      "description": "Сумма"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "description": "Валюта"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "enum": [
+                        "prospecting",
+                        "qualification",
+                        "proposal",
+                        "negotiation",
+                        "closed_won",
+                        "closed_lost"
+                      ],
+                      "description": "Стадия"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ],
+                      "description": "Приоритет"
+                    },
+                    "probability": {
+                      "type": "number",
+                      "description": "Вероятность закрытия"
+                    },
+                    "expectedCloseDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "actualCloseDate": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "contactId": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string",
+                      "description": "ID владельца"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Теги"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "value",
+                    "currency",
+                    "stage",
+                    "priority",
+                    "probability",
+                    "ownerId",
+                    "tags",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Сделка"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "title": "Внедрение CRM системы",
+                  "description": "Проект по внедрению CRM для автоматизации продаж",
+                  "amount": 1800000,
+                  "currency": "USD",
+                  "stage": "negotiation",
+                  "priority": "high",
+                  "probability": 70,
+                  "expectedCloseDate": "2024-03-15",
+                  "contactId": "clx0987654321fedcba",
+                  "ownerId": "clxowner123456789ab",
+                  "contact": {
+                    "id": "clx0987654321fedcba",
+                    "firstName": "Иван",
+                    "lastName": "Петров",
+                    "company": "ООО \"Технологии\""
+                  },
+                  "createdAt": "2024-01-20T14:00:00.000Z",
+                  "updatedAt": "2024-02-01T09:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID сделки"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "stage": {
+                    "type": "string",
+                    "enum": [
+                      "prospecting",
+                      "qualification",
+                      "proposal",
+                      "negotiation",
+                      "closed_won",
+                      "closed_lost"
+                    ],
+                    "description": "Стадия сделки: prospecting - поиск, qualification - квалификация, proposal - предложение, negotiation - переговоры, closed_won - выиграна, closed_lost - проиграна"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
+                    "description": "Приоритет: low - низкий, medium - средний, high - высокий"
+                  },
+                  "probability": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "expectedCloseDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "actualCloseDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "contactId": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Данные для обновления сделки"
+              },
+              "example": {
+                "stage": "negotiation",
+                "probability": 70,
+                "amount": 1800000
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить сделку",
+        "description": "Удаляет сделку из системы.",
+        "tags": [
+          "Сделки"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID сделки"
+          }
+        ]
+      }
+    },
+    "/api/dictionaries/search": {
+      "post": {
+        "summary": "Поиск словарей",
+        "description": "Возвращает список всех словарей с количеством элементов в каждом.",
+        "tags": [
+          "Словари"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dictionaries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "code": {
+                            "type": "string",
+                            "description": "Код словаря"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Название"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "allowHierarchy": {
+                            "type": "boolean",
+                            "description": "Разрешена ли иерархия"
+                          },
+                          "maxDepth": {
+                            "type": "number",
+                            "description": "Максимальная глубина"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "description": "Уникальный код поля",
+                                  "minLength": 1,
+                                  "pattern": "^[a-z][a-z0-9_]*$"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "description": "Отображаемое название",
+                                  "minLength": 1
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "string",
+                                    "number",
+                                    "boolean",
+                                    "color",
+                                    "icon"
+                                  ],
+                                  "description": "Тип поля"
+                                },
+                                "required": {
+                                  "type": "boolean",
+                                  "default": false
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "name",
+                                "type"
+                              ],
+                              "description": "Дополнительное поле словаря"
+                            },
+                            "description": "Дополнительные поля"
+                          },
+                          "itemCount": {
+                            "type": "number"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата обновления"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "name",
+                          "allowHierarchy",
+                          "maxDepth",
+                          "fields",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "description": "Словарь"
+                      },
+                      "description": "Список словарей"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    }
+                  },
+                  "required": [
+                    "dictionaries",
+                    "total"
+                  ],
+                  "description": "Список словарей"
+                },
+                "example": [
+                  {
+                    "id": "clx1234567890abcdef",
+                    "code": "contact_types",
+                    "name": "Типы контактов",
+                    "description": "Словарь типов контактов для классификации",
+                    "isSystem": false,
+                    "isHierarchical": false,
+                    "createdAt": "2024-01-05T12:00:00.000Z",
+                    "updatedAt": "2024-01-05T12:00:00.000Z",
+                    "_count": {
+                      "items": 5
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dictionaries": {
+      "post": {
+        "summary": "Создать словарь",
+        "description": "Создаёт новый словарь с указанными полями.",
+        "tags": [
+          "Словари"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Код словаря"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "allowHierarchy": {
+                      "type": "boolean",
+                      "description": "Разрешена ли иерархия"
+                    },
+                    "maxDepth": {
+                      "type": "number",
+                      "description": "Максимальная глубина"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "description": "Уникальный код поля",
+                            "minLength": 1,
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Отображаемое название",
+                            "minLength": 1
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "string",
+                              "number",
+                              "boolean",
+                              "color",
+                              "icon"
+                            ],
+                            "description": "Тип поля"
+                          },
+                          "required": {
+                            "type": "boolean",
+                            "default": false
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name",
+                          "type"
+                        ],
+                        "description": "Дополнительное поле словаря"
+                      },
+                      "description": "Дополнительные поля"
+                    },
+                    "itemCount": {
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "allowHierarchy",
+                    "maxDepth",
+                    "fields",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Словарь"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "code": "industries",
+                  "name": "Отрасли",
+                  "description": "Отрасли экономики для классификации клиентов",
+                  "isSystem": false,
+                  "isHierarchical": true,
+                  "createdAt": "2024-01-05T12:00:00.000Z",
+                  "updatedAt": "2024-01-05T12:00:00.000Z",
+                  "_count": {
+                    "items": 0
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Уникальный код словаря",
+                    "minLength": 1,
+                    "maxLength": 50,
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Название словаря",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "allowHierarchy": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "maxDepth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Уникальный код поля",
+                          "minLength": 1,
+                          "pattern": "^[a-z][a-z0-9_]*$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Отображаемое название",
+                          "minLength": 1
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "color",
+                            "icon"
+                          ],
+                          "description": "Тип поля"
+                        },
+                        "required": {
+                          "type": "boolean",
+                          "default": false
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "name",
+                        "type"
+                      ],
+                      "description": "Дополнительное поле словаря"
+                    },
+                    "default": []
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "description": "Данные для создания словаря"
+              },
+              "example": {
+                "code": "industries",
+                "name": "Отрасли",
+                "description": "Отрасли экономики для классификации клиентов",
+                "isHierarchical": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dictionaries/{code}": {
+      "get": {
+        "summary": "Получить словарь по коду",
+        "description": "Возвращает информацию о словаре.",
+        "tags": [
+          "Словари"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Код словаря"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "allowHierarchy": {
+                      "type": "boolean",
+                      "description": "Разрешена ли иерархия"
+                    },
+                    "maxDepth": {
+                      "type": "number",
+                      "description": "Максимальная глубина"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "description": "Уникальный код поля",
+                            "minLength": 1,
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Отображаемое название",
+                            "minLength": 1
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "string",
+                              "number",
+                              "boolean",
+                              "color",
+                              "icon"
+                            ],
+                            "description": "Тип поля"
+                          },
+                          "required": {
+                            "type": "boolean",
+                            "default": false
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name",
+                          "type"
+                        ],
+                        "description": "Дополнительное поле словаря"
+                      },
+                      "description": "Дополнительные поля"
+                    },
+                    "itemCount": {
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "allowHierarchy",
+                    "maxDepth",
+                    "fields",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Словарь"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "code": "contact_types",
+                  "name": "Типы контактов",
+                  "description": "Словарь типов контактов для классификации",
+                  "isSystem": false,
+                  "isHierarchical": false,
+                  "createdAt": "2024-01-05T12:00:00.000Z",
+                  "updatedAt": "2024-01-05T12:00:00.000Z",
+                  "_count": {
+                    "items": 5
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Обновить словарь",
+        "description": "Обновляет настройки словаря.",
+        "tags": [
+          "Словари"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Код словаря"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "allowHierarchy": {
+                      "type": "boolean",
+                      "description": "Разрешена ли иерархия"
+                    },
+                    "maxDepth": {
+                      "type": "number",
+                      "description": "Максимальная глубина"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "description": "Уникальный код поля",
+                            "minLength": 1,
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Отображаемое название",
+                            "minLength": 1
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "string",
+                              "number",
+                              "boolean",
+                              "color",
+                              "icon"
+                            ],
+                            "description": "Тип поля"
+                          },
+                          "required": {
+                            "type": "boolean",
+                            "default": false
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name",
+                          "type"
+                        ],
+                        "description": "Дополнительное поле словаря"
+                      },
+                      "description": "Дополнительные поля"
+                    },
+                    "itemCount": {
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "allowHierarchy",
+                    "maxDepth",
+                    "fields",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Словарь"
+                },
+                "example": {
+                  "id": "clx1234567890abcdef",
+                  "code": "contact_types",
+                  "name": "Отрасли экономики",
+                  "description": "Обновлённое описание отраслей",
+                  "isSystem": false,
+                  "isHierarchical": false,
+                  "createdAt": "2024-01-05T12:00:00.000Z",
+                  "updatedAt": "2024-01-05T12:00:00.000Z",
+                  "_count": {
+                    "items": 5
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "allowHierarchy": {
+                    "type": "boolean"
+                  },
+                  "maxDepth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Уникальный код поля",
+                          "minLength": 1,
+                          "pattern": "^[a-z][a-z0-9_]*$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Отображаемое название",
+                          "minLength": 1
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "color",
+                            "icon"
+                          ],
+                          "description": "Тип поля"
+                        },
+                        "required": {
+                          "type": "boolean",
+                          "default": false
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "name",
+                        "type"
+                      ],
+                      "description": "Дополнительное поле словаря"
+                    }
+                  }
+                },
+                "description": "Данные для обновления словаря"
+              },
+              "example": {
+                "name": "Отрасли экономики",
+                "description": "Обновлённое описание отраслей"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить словарь",
+        "description": "Удаляет словарь вместе со всеми его элементами.",
+        "tags": [
+          "Словари"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          }
+        ]
+      }
+    },
+    "/api/dictionaries/{code}/items": {
+      "get": {
+        "summary": "Получить элементы словаря",
+        "description": "Возвращает список элементов словаря. По умолчанию только активные.",
+        "tags": [
+          "Элементы словаря"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Уникальный идентификатор"
+                          },
+                          "dictionaryCode": {
+                            "type": "string",
+                            "description": "Код словаря"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Название"
+                          },
+                          "weight": {
+                            "type": "number",
+                            "description": "Порядковый номер"
+                          },
+                          "parentId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "depth": {
+                            "type": "number",
+                            "description": "Уровень вложенности"
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "Активен ли элемент"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "additionalProperties": {},
+                            "description": "Дополнительные свойства"
+                          },
+                          "children": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object"
+                              },
+                              "description": "Рекурсивная структура"
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата создания"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Дата обновления"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "dictionaryCode",
+                          "name",
+                          "weight",
+                          "parentId",
+                          "depth",
+                          "isActive",
+                          "properties",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "description": "Элемент словаря"
+                      },
+                      "description": "Список элементов"
+                    },
+                    "total": {
+                      "type": "number",
+                      "description": "Общее количество"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "total"
+                  ],
+                  "description": "Список элементов словаря"
+                },
+                "example": [
+                  {
+                    "id": "clxitem12345678abcd",
+                    "code": "client",
+                    "name": "Клиент",
+                    "description": "Действующий клиент компании",
+                    "sortOrder": 1,
+                    "isActive": true,
+                    "parentId": null,
+                    "dictionaryCode": "contact_types",
+                    "children": []
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Включить неактивные элементы"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Создать элемент словаря",
+        "description": "Добавляет новый элемент в словарь.",
+        "tags": [
+          "Элементы словаря"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "dictionaryCode": {
+                      "type": "string",
+                      "description": "Код словаря"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "weight": {
+                      "type": "number",
+                      "description": "Порядковый номер"
+                    },
+                    "parentId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "depth": {
+                      "type": "number",
+                      "description": "Уровень вложенности"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли элемент"
+                    },
+                    "properties": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "description": "Дополнительные свойства"
+                    },
+                    "children": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        },
+                        "description": "Рекурсивная структура"
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "dictionaryCode",
+                    "name",
+                    "weight",
+                    "parentId",
+                    "depth",
+                    "isActive",
+                    "properties",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Элемент словаря"
+                },
+                "example": {
+                  "id": "clxitem12345678abcd",
+                  "code": "partner",
+                  "name": "Партнёр",
+                  "description": "Партнёр компании",
+                  "sortOrder": 2,
+                  "isActive": true,
+                  "parentId": null,
+                  "dictionaryCode": "contact_types",
+                  "children": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Название элемента",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "nullable": true,
+                    "default": null
+                  },
+                  "properties": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "default": {}
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "description": "Данные для создания элемента словаря"
+              },
+              "example": {
+                "code": "partner",
+                "name": "Партнёр",
+                "description": "Партнёр компании",
+                "sortOrder": 2,
+                "isActive": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dictionaries/{code}/items/{id}": {
+      "patch": {
+        "summary": "Обновить элемент словаря",
+        "description": "Обновляет данные элемента.",
+        "tags": [
+          "Элементы словаря"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор"
+                    },
+                    "dictionaryCode": {
+                      "type": "string",
+                      "description": "Код словаря"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Название"
+                    },
+                    "weight": {
+                      "type": "number",
+                      "description": "Порядковый номер"
+                    },
+                    "parentId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "depth": {
+                      "type": "number",
+                      "description": "Уровень вложенности"
+                    },
+                    "isActive": {
+                      "type": "boolean",
+                      "description": "Активен ли элемент"
+                    },
+                    "properties": {
+                      "type": "object",
+                      "additionalProperties": {},
+                      "description": "Дополнительные свойства"
+                    },
+                    "children": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        },
+                        "description": "Рекурсивная структура"
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата создания"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата обновления"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "dictionaryCode",
+                    "name",
+                    "weight",
+                    "parentId",
+                    "depth",
+                    "isActive",
+                    "properties",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "description": "Элемент словаря"
+                },
+                "example": {
+                  "id": "clxitem12345678abcd",
+                  "code": "client",
+                  "name": "Стратегический партнёр",
+                  "description": "Действующий клиент компании",
+                  "sortOrder": 1,
+                  "isActive": true,
+                  "parentId": null,
+                  "dictionaryCode": "contact_types",
+                  "children": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID элемента"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "nullable": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "description": "Данные для обновления элемента словаря"
+              },
+              "example": {
+                "name": "Стратегический партнёр",
+                "sortOrder": 1
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить элемент словаря",
+        "description": "Удаляет элемент. Дочерние элементы переносятся к родителю удаляемого элемента.",
+        "tags": [
+          "Элементы словаря"
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ"
+          },
+          "401": {
+            "description": "Не авторизован",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Код словаря"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID элемента"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "next-auth.session-token"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Контакты"
+    },
+    {
+      "name": "Пользователи"
+    },
+    {
+      "name": "Сделки"
+    },
+    {
+      "name": "Словари"
+    },
+    {
+      "name": "Элементы словаря"
+    }
+  ]
+}

@@ -104,11 +104,11 @@ test.describe('Contacts Page', () => {
       await page.getByRole('button', { name: 'Создать контакт' }).first().click();
 
       await page.getByLabel('Имя *').fill('Петр Иванов');
-      await page.getByPlaceholder('+7 999 123-45-67').fill('+7 999 111-22-33');
+      await page.getByPlaceholder('(201) 555-0123').fill('2015551234');
       await page.locator('form').getByRole('button', { name: 'Создать контакт' }).click();
 
       await expect(page.getByText('Петр Иванов')).toBeVisible();
-      await expect(page.getByText('+7 999 111-22-33')).toBeVisible();
+      await expect(page.getByText('+2015551234')).toBeVisible();
     });
 
     test('should add multiple emails', async ({ page }) => {
@@ -138,17 +138,17 @@ test.describe('Contacts Page', () => {
       await page.getByLabel('Имя *').fill('Алексей Смирнов');
 
       // Fill first phone
-      await page.getByPlaceholder('+7 999 123-45-67').first().fill('+7 999 111-11-11');
+      await page.getByPlaceholder('(201) 555-0123').first().fill('2015551111');
 
       // Add second phone
       await page.getByRole('button', { name: '+ Добавить' }).nth(1).click();
-      await page.getByPlaceholder('+7 999 123-45-67').nth(1).fill('+7 999 222-22-22');
+      await page.getByPlaceholder('(201) 555-0123').nth(1).fill('2015552222');
 
       await page.locator('form').getByRole('button', { name: 'Создать контакт' }).click();
 
       await expect(page.getByText('Алексей Смирнов')).toBeVisible();
-      await expect(page.getByText('+7 999 111-11-11')).toBeVisible();
-      await expect(page.getByText('+7 999 222-22-22')).toBeVisible();
+      await expect(page.getByText('+2015551111')).toBeVisible();
+      await expect(page.getByText('+2015552222')).toBeVisible();
     });
 
     test('should create contact with all fields', async ({ page }) => {
@@ -157,7 +157,7 @@ test.describe('Contacts Page', () => {
 
       await page.getByLabel('Имя *').fill('Елена Васильева');
       await page.getByPlaceholder('email@example.com').fill('elena@company.com');
-      await page.getByPlaceholder('+7 999 123-45-67').fill('+7 999 333-33-33');
+      await page.getByPlaceholder('(201) 555-0123').fill('2015553333');
       await page.getByLabel('Компания').fill('ООО Тест');
       await page.getByLabel('Должность').fill('Менеджер');
       await page.getByLabel('Заметки').fill('Важный клиент');
@@ -173,9 +173,9 @@ test.describe('Contacts Page', () => {
       await page.goto('/contacts');
       await page.getByRole('button', { name: 'Создать контакт' }).click();
 
-      // Check that name is required
-      const nameInput = page.getByLabel('Имя *');
-      await expect(nameInput).toHaveAttribute('required', '');
+      // Try to submit without name - Zod validation should show error
+      await page.locator('form').getByRole('button', { name: 'Создать контакт' }).click();
+      await expect(page.getByText('Имя обязательно')).toBeVisible();
     });
   });
 

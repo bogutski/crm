@@ -1,12 +1,38 @@
-import Contact, { IContact } from './model';
+import mongoose from 'mongoose';
+import Contact, { IContact, IContactType } from './model';
 import {
   CreateContactDTO,
   UpdateContactDTO,
   ContactResponse,
   ContactsListResponse,
   ContactFilters,
+  ContactTypeResponse,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+// Импортируем DictionaryItem чтобы модель была зарегистрирована для populate
+import '@/modules/dictionary/model';
+
+function toContactTypeResponse(contactType: mongoose.Types.ObjectId | IContactType | undefined): ContactTypeResponse | null {
+  if (!contactType) return null;
+
+  // Если это ObjectId (не был populate), возвращаем null
+  if (contactType instanceof mongoose.Types.ObjectId) {
+    return null;
+  }
+
+  // Проверяем что это объект с _id (populated DictionaryItem)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ct = contactType as any;
+  if (!ct._id || !ct.name) {
+    return null;
+  }
+
+  return {
+    id: ct._id.toString(),
+    name: ct.name,
+    color: ct.properties?.color,
+  };
+}
 
 function toContactResponse(contact: IContact): ContactResponse {
   return {
@@ -17,7 +43,7 @@ function toContactResponse(contact: IContact): ContactResponse {
     company: contact.company,
     position: contact.position,
     notes: contact.notes,
-    contactType: contact.contactType,
+    contactType: toContactTypeResponse(contact.contactType),
     source: contact.source,
     ownerId: contact.ownerId.toString(),
     createdAt: contact.createdAt,
@@ -57,7 +83,11 @@ export async function getContacts(filters: ContactFilters): Promise<ContactsList
   const skip = (page - 1) * limit;
 
   const [contacts, total] = await Promise.all([
-    Contact.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Contact.find(query)
+      .populate('contactType', '_id name properties')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
     Contact.countDocuments(query),
   ]);
 
@@ -72,7 +102,8 @@ export async function getContacts(filters: ContactFilters): Promise<ContactsList
 export async function getContactById(id: string): Promise<ContactResponse | null> {
   await dbConnect();
 
-  const contact = await Contact.findById(id);
+  const contact = await Contact.findById(id)
+    .populate('contactType', '_id name properties');
   if (!contact) return null;
 
   return toContactResponse(contact);
@@ -88,10 +119,13 @@ export async function createContact(data: CreateContactDTO): Promise<ContactResp
     company: data.company,
     position: data.position,
     notes: data.notes,
-    contactType: data.contactType,
+    contactType: data.contactType || undefined,
     source: data.source,
     ownerId: data.ownerId,
   });
+
+  // Populate contactType для ответа
+  await contact.populate('contactType', '_id name properties');
 
   return toContactResponse(contact);
 }
@@ -102,7 +136,19 @@ export async function updateContact(
 ): Promise<ContactResponse | null> {
   await dbConnect();
 
-  const contact = await Contact.findByIdAndUpdate(id, { $set: data }, { new: true });
+  // Если contactType явно null, удаляем поле
+  const updateData = { ...data };
+  if (data.contactType === null) {
+    await Contact.findByIdAndUpdate(id, { $unset: { contactType: 1 } });
+    delete updateData.contactType;
+  }
+
+  const contact = await Contact.findByIdAndUpdate(
+    id,
+    { $set: updateData },
+    { new: true }
+  ).populate('contactType', '_id name properties');
+
   if (!contact) return null;
 
   return toContactResponse(contact);
@@ -118,6 +164,8 @@ export async function deleteContact(id: string): Promise<boolean> {
 export async function getContactsByOwner(ownerId: string): Promise<ContactResponse[]> {
   await dbConnect();
 
-  const contacts = await Contact.find({ ownerId }).sort({ createdAt: -1 });
+  const contacts = await Contact.find({ ownerId })
+    .populate('contactType', '_id name properties')
+    .sort({ createdAt: -1 });
   return contacts.map(toContactResponse);
 }

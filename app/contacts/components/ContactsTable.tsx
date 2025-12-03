@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Pencil, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { Pencil, ChevronLeft, ChevronRight, Trash2, Eye } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
-import { EditContactForm } from './EditContactForm';
+import { ContactForm } from './ContactForm';
+import { Badge } from '@/components/ui/Badge';
 
 interface Email {
   address: string;
@@ -21,6 +23,12 @@ interface Phone {
   isPrimary: boolean;
 }
 
+interface ContactType {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface Contact {
   id: string;
   name: string;
@@ -29,6 +37,7 @@ interface Contact {
   company?: string;
   position?: string;
   notes?: string;
+  contactType?: ContactType | null;
   createdAt: string;
 }
 
@@ -86,12 +95,14 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
   const fetchContacts = useCallback(async (page: number, search: string) => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.set('page', String(page));
-      if (search) {
-        params.set('search', search);
-      }
-      const response = await fetch(`/api/contacts?${params.toString()}`);
+      const response = await fetch('/api/contacts/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          ...(search && { search }),
+        }),
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
       }
@@ -248,6 +259,9 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                   Имя
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  Тип
+                </th>
+                <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Email
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
@@ -269,9 +283,28 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                   className="border-b border-zinc-200 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                 >
                   <td className="px-4 py-1.5">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                    <Link
+                      href={`/contacts/${contact.id}`}
+                      className="text-sm font-medium text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400"
+                    >
                       {contact.name}
-                    </span>
+                    </Link>
+                  </td>
+                  <td className="px-4 py-1.5">
+                    {contact.contactType ? (
+                      <Badge
+                        style={{
+                          backgroundColor: contact.contactType.color
+                            ? `${contact.contactType.color}20`
+                            : '#71717a20',
+                          color: contact.contactType.color || '#71717a',
+                        }}
+                      >
+                        {contact.contactType.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-1.5">
                     <div className="flex flex-col">
@@ -311,6 +344,13 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                   </td>
                   <td className="px-4 py-1.5">
                     <div className="flex items-center gap-1">
+                      <Link
+                        href={`/contacts/${contact.id}`}
+                        className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
+                        title="Просмотр"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => handleEditClick(contact)}
                         className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
@@ -396,7 +436,7 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
         title="Редактирование контакта"
       >
         {editingContact && (
-          <EditContactForm
+          <ContactForm
             contact={editingContact}
             onSuccess={handleEditSuccess}
             onCancel={handleEditCancel}
