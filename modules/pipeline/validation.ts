@@ -87,6 +87,10 @@ export const reorderStagesSchema = z.object({
   stageIds: z.array(z.string().min(1)).min(1),
 });
 
+export const reorderPipelinesSchema = z.object({
+  pipelineIds: z.array(z.string().min(1)).min(1),
+});
+
 // Type inference
 export type CreatePipelineInput = z.infer<typeof createPipelineSchema>;
 export type UpdatePipelineInput = z.infer<typeof updatePipelineSchema>;
@@ -94,3 +98,4 @@ export type PipelineFiltersInput = z.infer<typeof pipelineFiltersSchema>;
 export type CreatePipelineStageInput = z.infer<typeof createPipelineStageSchema>;
 export type UpdatePipelineStageInput = z.infer<typeof updatePipelineStageSchema>;
 export type ReorderStagesInput = z.infer<typeof reorderStagesSchema>;
+export type ReorderPipelinesInput = z.infer<typeof reorderPipelinesSchema>;

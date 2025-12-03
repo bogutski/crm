@@ -25,6 +25,7 @@ export {
   createPipelineStageSchema,
   updatePipelineStageSchema,
   reorderStagesSchema,
+  reorderPipelinesSchema,
 } from './validation';
 export type {
   CreatePipelineInput,
@@ -33,6 +34,7 @@ export type {
   CreatePipelineStageInput,
   UpdatePipelineStageInput,
   ReorderStagesInput,
+  ReorderPipelinesInput,
 } from './validation';
 
 // Controller
@@ -51,4 +53,5 @@ export {
   deleteStage,
   reorderStages,
   getInitialStage,
+  reorderPipelines,
 } from './controller';

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Pencil, Trash2, Plus, GripVertical, ArrowLeft, Check, Trophy } from 'lucide-react';
+import { Pencil, Trash2, Plus, GripVertical, ArrowLeft, Trophy } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { StageForm } from './StageForm';
@@ -44,7 +44,8 @@ export function StagesList({ pipelineId }: StagesListProps) {
   const [deletingStage, setDeletingStage] = useState<Stage | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const dragNodeRef = useRef<HTMLDivElement | null>(null);
 
   const fetchPipeline = useCallback(async () => {
     try {
@@ -87,45 +88,72 @@ export function StagesList({ pipelineId }: StagesListProps) {
     }
   };
 
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
+    dragNodeRef.current = e.currentTarget as HTMLDivElement;
+
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(index));
+    }
+
+    setTimeout(() => {
+      if (dragNodeRef.current) {
+        dragNodeRef.current.style.opacity = '0.5';
+      }
+    }, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    setDragOverIndex(index);
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDropTargetIndex(index);
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDropTargetIndex(index);
   };
 
   const handleDragEnd = async () => {
-    if (draggedIndex === null || dragOverIndex === null || draggedIndex === dragOverIndex) {
+    if (dragNodeRef.current) {
+      dragNodeRef.current.style.opacity = '1';
+    }
+
+    if (draggedIndex === null || dropTargetIndex === null || draggedIndex === dropTargetIndex) {
       setDraggedIndex(null);
-      setDragOverIndex(null);
+      setDropTargetIndex(null);
       return;
     }
 
     const stages = [...(pipeline?.stages || [])];
     const [draggedItem] = stages.splice(draggedIndex, 1);
-    stages.splice(dragOverIndex, 0, draggedItem);
+    stages.splice(dropTargetIndex, 0, draggedItem);
 
     // Optimistic update
     if (pipeline) {
       setPipeline({ ...pipeline, stages });
     }
 
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+
     // Save new order
     try {
-      await fetch(`/api/pipelines/${pipelineId}/stages/reorder`, {
+      const response = await fetch(`/api/pipelines/${pipelineId}/stages/reorder`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stageIds: stages.map((s) => s.id) }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to reorder');
+      }
     } catch (error) {
       console.error('Error reordering stages:', error);
       fetchPipeline(); // Revert on error
     }
-
-    setDraggedIndex(null);
-    setDragOverIndex(null);
   };
 
   if (isLoading) {
@@ -195,10 +223,10 @@ export function StagesList({ pipelineId }: StagesListProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {/* Визуальное представление воронки */}
           <div className="flex gap-1 mb-6 overflow-x-auto pb-2">
-            {stages.map((stage, index) => (
+            {stages.map((stage) => (
               <div
                 key={stage.id}
                 className="flex-1 min-w-[120px] text-center py-2 px-3 rounded text-sm font-medium text-white"
@@ -211,65 +239,60 @@ export function StagesList({ pipelineId }: StagesListProps) {
           </div>
 
           {/* Список этапов с drag-and-drop */}
-          <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50">
-                <tr>
-                  <th className="w-10 px-2 py-3"></th>
-                  <th className="w-12 px-2 py-3"></th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Название
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Код
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Вероятность
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Флаги
-                  </th>
-                  <th className="w-24 px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {stages.map((stage, index) => (
-                  <tr
-                    key={stage.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`bg-white dark:bg-zinc-900 transition-colors ${
-                      draggedIndex === index ? 'opacity-50' : ''
-                    } ${
-                      dragOverIndex === index && draggedIndex !== index
-                        ? 'border-t-2 border-blue-500'
-                        : ''
-                    } ${!stage.isActive ? 'opacity-50' : ''}`}
-                  >
-                    <td className="px-2 py-3 cursor-move">
-                      <GripVertical className="w-4 h-4 text-zinc-400" />
-                    </td>
-                    <td className="px-2 py-3">
-                      <div
-                        className="w-6 h-6 rounded"
-                        style={{ backgroundColor: stage.color }}
-                      ></div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                        {stage.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400 font-mono">
-                      {stage.code}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                      {stage.probability}%
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1 flex-wrap">
+          <div className="grid gap-2">
+            {stages.map((stage, index) => (
+              <div key={stage.id} className="relative">
+                {/* Drop indicator - shows above the item */}
+                {dropTargetIndex === index && draggedIndex !== null && draggedIndex > index && (
+                  <div className="absolute -top-1 left-0 right-0 h-1 bg-blue-500 rounded-full z-10 transition-all duration-200" />
+                )}
+
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnter={(e) => handleDragEnter(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`border rounded-lg p-3 transition-all duration-200 cursor-move ${
+                    stage.isActive
+                      ? 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'
+                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 opacity-60'
+                  } ${
+                    draggedIndex === index
+                      ? 'opacity-50 scale-[0.98] shadow-lg'
+                      : ''
+                  } ${
+                    dropTargetIndex === index && draggedIndex !== null && draggedIndex !== index
+                      ? 'transform translate-y-2'
+                      : ''
+                  } hover:border-zinc-300 dark:hover:border-zinc-700`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Drag handle */}
+                    <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
+                      <GripVertical className="w-5 h-5 text-zinc-400" />
+                    </div>
+
+                    {/* Color indicator */}
+                    <div
+                      className="w-4 h-4 rounded flex-shrink-0"
+                      style={{ backgroundColor: stage.color }}
+                    />
+
+                    {/* Stage info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                          {stage.name}
+                        </span>
+                        <span className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">
+                          {stage.code}
+                        </span>
+                        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                          {stage.probability}%
+                        </span>
+                      </div>
+                      <div className="flex gap-1 flex-wrap mt-1">
                         {stage.isInitial && (
                           <Badge variant="info" rounded="full">
                             Начальный
@@ -292,29 +315,40 @@ export function StagesList({ pipelineId }: StagesListProps) {
                           </Badge>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1 justify-end">
-                        <button
-                          onClick={() => setEditingStage(stage)}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
-                          title="Редактировать"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingStage(stage)}
-                          className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
-                          title="Удалить"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingStage(stage);
+                        }}
+                        className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
+                        title="Редактировать"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingStage(stage);
+                        }}
+                        className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
+                        title="Удалить"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Drop indicator - shows below the item */}
+                {dropTargetIndex === index && draggedIndex !== null && draggedIndex < index && (
+                  <div className="absolute -bottom-1 left-0 right-0 h-1 bg-blue-500 rounded-full z-10 transition-all duration-200" />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

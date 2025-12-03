@@ -347,25 +347,19 @@ export async function reorderStages(pipelineId: string, stageIds: string[]): Pro
     return false;
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    for (let i = 0; i < stageIds.length; i++) {
-      await PipelineStage.findOneAndUpdate(
-        { _id: stageIds[i], pipelineId },
-        { order: i },
-        { session }
-      );
-    }
+    const updatePromises = stageIds.map((stageId, index) =>
+      PipelineStage.findOneAndUpdate(
+        { _id: stageId, pipelineId },
+        { order: index }
+      )
+    );
 
-    await session.commitTransaction();
+    await Promise.all(updatePromises);
     return true;
   } catch (error) {
-    await session.abortTransaction();
+    console.error('Error in reorderStages:', error);
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 
@@ -391,4 +385,23 @@ export async function getInitialStage(pipelineId: string): Promise<PipelineStage
   }
 
   return formatStage(stage);
+}
+
+export async function reorderPipelines(pipelineIds: string[]): Promise<boolean> {
+  await dbConnect();
+
+  try {
+    const updatePromises = pipelineIds.map((pipelineId, index) => {
+      if (!mongoose.Types.ObjectId.isValid(pipelineId)) {
+        throw new Error(`Invalid pipeline ID: ${pipelineId}`);
+      }
+      return Pipeline.findByIdAndUpdate(pipelineId, { order: index });
+    });
+
+    await Promise.all(updatePromises);
+    return true;
+  } catch (error) {
+    console.error('Error in reorderPipelines:', error);
+    throw error;
+  }
 }
