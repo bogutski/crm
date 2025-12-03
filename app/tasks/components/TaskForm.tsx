@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { taskFormSchema, type TaskFormData } from '@/modules/task/validation';
 import { ColorSelect, type ColorOption } from '@/components/ui/ColorSelect';
 import { Button } from '@/components/ui/Button';
+import { TaskDueDatePicker } from '@/components/ui/TaskDueDatePicker';
 
 interface Priority {
   id: string;
@@ -55,6 +56,7 @@ interface DictionaryItem {
 interface TaskFormProps {
   task?: Task;
   projects: Project[];
+  defaultProjectId?: string | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -72,23 +74,34 @@ const entityTypeOptions: ColorOption[] = [
   { value: 'project', label: 'Проект' },
 ];
 
-const getDefaultValues = (task?: Task): TaskFormData => {
+const getDefaultValues = (task?: Task, defaultProjectId?: string | null): TaskFormData => {
   if (task) {
     return {
       title: task.title,
-      description: task.description || '',
       status: task.status,
       priorityId: task.priority?.id || '',
-      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      dueDate: task.dueDate || '',
       assigneeId: task.assignee?.id || '',
       linkedEntityType: task.linkedTo?.entityType,
       linkedEntityId: task.linkedTo?.entityId || '',
     };
   }
 
+  // Если есть defaultProjectId - установить привязку к проекту по умолчанию
+  if (defaultProjectId) {
+    return {
+      title: '',
+      status: 'open',
+      priorityId: '',
+      dueDate: '',
+      assigneeId: '',
+      linkedEntityType: 'project',
+      linkedEntityId: defaultProjectId,
+    };
+  }
+
   return {
     title: '',
-    description: '',
     status: 'open',
     priorityId: '',
     dueDate: '',
@@ -98,13 +111,14 @@ const getDefaultValues = (task?: Task): TaskFormData => {
   };
 };
 
-export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps) {
+export function TaskForm({ task, projects, defaultProjectId, onSuccess, onCancel }: TaskFormProps) {
   const isEditMode = Boolean(task);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Data
   const [priorities, setPriorities] = useState<DictionaryItem[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [users, setUsers] = useState<Assignee[]>([]);
 
   const {
     register,
@@ -115,7 +129,7 @@ export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps)
     formState: { errors, isSubmitting },
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
-    defaultValues: getDefaultValues(task),
+    defaultValues: getDefaultValues(task, defaultProjectId),
   });
 
   const selectedEntityType = watch('linkedEntityType');
@@ -128,9 +142,15 @@ export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ limit: 100 }),
       }).then(r => r.ok ? r.json() : { contacts: [] }),
-    ]).then(([prioritiesData, contactsData]) => {
+      fetch('/api/users/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 100 }),
+      }).then(r => r.ok ? r.json() : { users: [] }),
+    ]).then(([prioritiesData, contactsData, usersData]) => {
       setPriorities(prioritiesData.items || []);
       setContacts(contactsData.contacts || []);
+      setUsers(usersData.users || []);
     });
   }, []);
 
@@ -150,7 +170,6 @@ export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps)
 
       const payload = {
         title: data.title.trim(),
-        description: data.description?.trim() || (isEditMode ? null : undefined),
         status: data.status,
         priorityId: data.priorityId || (isEditMode ? null : undefined),
         dueDate: data.dueDate || (isEditMode ? null : undefined),
@@ -204,49 +223,76 @@ export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps)
     })),
   ], [projects]);
 
+  const assigneeOptions: ColorOption[] = useMemo(() => [
+    { value: '', label: 'Не назначен' },
+    ...users.map(u => ({
+      value: u.id,
+      label: u.name,
+    })),
+  ], [users]);
+
   const linkedEntityOptions = selectedEntityType === 'contact' ? contactOptions : projectOptions;
 
   const idPrefix = isEditMode ? 'edit-' : '';
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {submitError && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
           <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
         </div>
       )}
 
-      {/* Title */}
+      {/* 1. Title - главное поле */}
       <div>
         <label htmlFor={`${idPrefix}title`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-          Название *
+          Что нужно сделать? *
         </label>
         <input
           id={`${idPrefix}title`}
           type="text"
           {...register('title')}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Что нужно сделать?"
+          className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+          placeholder="Позвонить клиенту, подготовить отчёт..."
+          autoFocus
         />
         {errors.title && (
           <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
         )}
       </div>
 
-      {/* Status & Priority */}
+      {/* 2. Due Date - срок с датой и временем */}
+      <div>
+        <label htmlFor={`${idPrefix}dueDate`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          Срок выполнения
+        </label>
+        <Controller
+          control={control}
+          name="dueDate"
+          render={({ field }) => (
+            <TaskDueDatePicker
+              id={`${idPrefix}dueDate`}
+              value={field.value ? new Date(field.value) : null}
+              onChange={(date) => field.onChange(date?.toISOString() || '')}
+            />
+          )}
+        />
+      </div>
+
+      {/* 3. Assignee & Priority */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor={`${idPrefix}status`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            Статус
+          <label htmlFor={`${idPrefix}assigneeId`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Ответственный
           </label>
           <Controller
             control={control}
-            name="status"
+            name="assigneeId"
             render={({ field }) => (
               <ColorSelect
-                id={`${idPrefix}status`}
-                options={statusOptions}
-                value={field.value || 'open'}
+                id={`${idPrefix}assigneeId`}
+                options={assigneeOptions}
+                value={field.value || ''}
                 onChange={field.onChange}
               />
             )}
@@ -271,20 +317,7 @@ export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps)
         </div>
       </div>
 
-      {/* Due Date */}
-      <div>
-        <label htmlFor={`${idPrefix}dueDate`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-          Срок выполнения
-        </label>
-        <input
-          id={`${idPrefix}dueDate`}
-          type="date"
-          {...register('dueDate')}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* Linked Entity */}
+      {/* 4. Linked Entity - привязка к проекту/контакту */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor={`${idPrefix}linkedEntityType`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -326,19 +359,26 @@ export function TaskForm({ task, projects, onSuccess, onCancel }: TaskFormProps)
         </div>
       </div>
 
-      {/* Description */}
-      <div>
-        <label htmlFor={`${idPrefix}description`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-          Описание
-        </label>
-        <textarea
-          id={`${idPrefix}description`}
-          {...register('description')}
-          rows={3}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          placeholder="Дополнительные детали..."
-        />
-      </div>
+      {/* 5. Status - только при редактировании */}
+      {isEditMode && (
+        <div>
+          <label htmlFor={`${idPrefix}status`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Статус
+          </label>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <ColorSelect
+                id={`${idPrefix}status`}
+                options={statusOptions}
+                value={field.value || 'open'}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        </div>
+      )}
 
       {/* Buttons */}
       <div className="flex gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">

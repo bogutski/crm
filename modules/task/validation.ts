@@ -104,10 +104,9 @@ export type TaskFiltersInput = z.infer<typeof taskFiltersSchema>;
 
 export const taskFormSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
-  description: z.string().optional(),
   status: taskStatusSchema.optional(),
   priorityId: z.string().optional(),
-  dueDate: z.string().optional(),
+  dueDate: z.string().optional(), // datetime-local format
   assigneeId: z.string().optional(),
   linkedEntityType: linkedEntityTypeSchema.optional(),
   linkedEntityId: z.string().optional(),

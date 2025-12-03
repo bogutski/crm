@@ -271,9 +271,18 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
     return pages;
   };
 
-  const formatDate = (date?: string) => {
+  const formatDateTime = (date?: string) => {
     if (!date) return '-';
-    return new Date(date).toLocaleDateString('ru-RU');
+    const d = new Date(date);
+    const dateStr = d.toLocaleDateString('ru-RU');
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    // Показываем время только если оно не 00:00
+    if (hours === 0 && minutes === 0) {
+      return dateStr;
+    }
+    const timeStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr} ${timeStr}`;
   };
 
   const isOverdue = (task: Task) => {
@@ -333,7 +342,7 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
                   Привязка
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                  Исполнитель
+                  Ответственный
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Срок
@@ -376,11 +385,6 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
                       >
                         {task.title}
                       </span>
-                      {task.description && (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-xs">
-                          {task.description}
-                        </p>
-                      )}
                     </td>
                     <td className="px-4 py-1.5">
                       <span className={`inline-flex items-center gap-1 text-sm ${statusConfig[task.status].color}`}>
@@ -442,7 +446,7 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
                             : 'text-zinc-600 dark:text-zinc-400'
                         }`}
                       >
-                        {formatDate(task.dueDate)}
+                        {formatDateTime(task.dueDate)}
                       </span>
                     </td>
                     <td className="px-4 py-1.5">

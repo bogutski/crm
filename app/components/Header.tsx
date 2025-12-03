@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Settings, FileText, Home } from 'lucide-react';
 import { Navigation } from './Navigation';
 import { LogoutButton } from './LogoutButton';
+import { GlobalSearch } from './GlobalSearch';
 
 interface HeaderProps {
   userName?: string | null;
@@ -19,6 +20,7 @@ export function Header({ userName }: HeaderProps) {
         <Navigation />
       </div>
       <div className="flex items-center gap-4">
+        <GlobalSearch />
         <Link
           href="/docs"
           className="p-1.5 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"

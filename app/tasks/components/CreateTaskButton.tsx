@@ -12,9 +12,10 @@ interface Project {
 
 interface CreateTaskButtonProps {
   projects: Project[];
+  defaultProjectId?: string | null;
 }
 
-export function CreateTaskButton({ projects }: CreateTaskButtonProps) {
+export function CreateTaskButton({ projects, defaultProjectId }: CreateTaskButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSuccess = () => {
@@ -38,6 +39,7 @@ export function CreateTaskButton({ projects }: CreateTaskButtonProps) {
       >
         <TaskForm
           projects={projects}
+          defaultProjectId={defaultProjectId}
           onSuccess={handleSuccess}
           onCancel={() => setIsOpen(false)}
         />

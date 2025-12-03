@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { opportunityFormSchema, type OpportunityFormData } from '@/modules/opportunity/validation';
 import { ColorSelect, type ColorOption } from '@/components/ui/ColorSelect';
 import { Button } from '@/components/ui/Button';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 interface Priority {
   id: string;
@@ -308,11 +309,17 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
           <label htmlFor={`${idPrefix}closingDate`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
             Дата закрытия
           </label>
-          <input
-            id={`${idPrefix}closingDate`}
-            type="date"
-            {...register('closingDate')}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <Controller
+            control={control}
+            name="closingDate"
+            render={({ field }) => (
+              <DatePicker
+                id={`${idPrefix}closingDate`}
+                value={field.value ? new Date(field.value) : null}
+                onChange={(date) => field.onChange(date?.toISOString().split('T')[0] || '')}
+                placeholder="Выберите дату"
+              />
+            )}
           />
         </div>
       </div>
