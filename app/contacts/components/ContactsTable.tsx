@@ -30,6 +30,18 @@ interface ContactType {
   color?: string;
 }
 
+interface Source {
+  id: string;
+  name: string;
+  color?: string;
+}
+
+interface Owner {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface Contact {
   id: string;
   name: string;
@@ -39,6 +51,8 @@ interface Contact {
   position?: string;
   notes?: string;
   contactType?: ContactType | null;
+  source?: string;
+  owner?: Owner | null;
   createdAt: string;
 }
 
@@ -52,9 +66,18 @@ interface ContactsResponse {
 interface ContactsTableProps {
   initialPage?: number;
   initialSearch?: string;
+  ownerId?: string;
+  contactType?: string;
+  source?: string;
 }
 
-export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsTableProps) {
+export function ContactsTable({
+  initialPage = 1,
+  initialSearch = '',
+  ownerId,
+  contactType,
+  source,
+}: ContactsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -65,10 +88,14 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewContactId, setPreviewContactId] = useState<string | null>(null);
+  const [sources, setSources] = useState<Source[]>([]);
 
   // Get current values from URL or use initial values
   const currentPage = parseInt(searchParams.get('page') || String(initialPage), 10);
   const currentSearch = searchParams.get('search') || '';
+  const currentOwnerId = searchParams.get('ownerId') || ownerId;
+  const currentContactType = searchParams.get('contactType') || contactType;
+  const currentSource = searchParams.get('source') || source;
 
   // Update URL with new params
   const updateUrl = useCallback((params: { page?: number; search?: string }) => {
@@ -94,7 +121,13 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
     router.push(queryString ? `?${queryString}` : '/contacts', { scroll: false });
   }, [router, searchParams]);
 
-  const fetchContacts = useCallback(async (page: number, search: string) => {
+  const fetchContacts = useCallback(async (
+    page: number,
+    search: string,
+    ownerId?: string,
+    contactType?: string,
+    source?: string
+  ) => {
     try {
       setLoading(true);
       const response = await fetch('/api/contacts/search', {
@@ -103,6 +136,9 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
         body: JSON.stringify({
           page,
           ...(search && { search }),
+          ...(ownerId && { ownerId }),
+          ...(contactType && { contactType }),
+          ...(source && { source }),
         }),
       });
       if (!response.ok) {
@@ -118,13 +154,25 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
   }, []);
 
   useEffect(() => {
-    fetchContacts(currentPage, currentSearch);
-  }, [currentPage, currentSearch, fetchContacts]);
+    fetchContacts(currentPage, currentSearch, currentOwnerId, currentContactType, currentSource);
+  }, [currentPage, currentSearch, currentOwnerId, currentContactType, currentSource, fetchContacts]);
+
+  // Load sources dictionary
+  useEffect(() => {
+    fetch('/api/dictionaries/sources/items')
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(data => {
+        setSources(data.items || []);
+      })
+      .catch(err => {
+        console.error('Failed to load sources:', err);
+      });
+  }, []);
 
   // Listen for contact creation/update events
   useEffect(() => {
     const handleContactChange = () => {
-      fetchContacts(currentPage, currentSearch);
+      fetchContacts(currentPage, currentSearch, currentOwnerId, currentContactType, currentSource);
     };
     window.addEventListener('contactCreated', handleContactChange);
     window.addEventListener('contactUpdated', handleContactChange);
@@ -132,7 +180,7 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
       window.removeEventListener('contactCreated', handleContactChange);
       window.removeEventListener('contactUpdated', handleContactChange);
     };
-  }, [currentPage, currentSearch, fetchContacts]);
+  }, [currentPage, currentSearch, currentOwnerId, currentContactType, currentSource, fetchContacts]);
 
   const handleEditClick = (contact: Contact) => {
     setEditingContact(contact);
@@ -164,7 +212,7 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
       }
 
       setDeletingContact(null);
-      fetchContacts(currentPage, currentSearch);
+      fetchContacts(currentPage, currentSearch, currentOwnerId, currentContactType, currentSource);
     } catch (err) {
       console.error('Error deleting contact:', err);
     } finally {
@@ -174,6 +222,12 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
 
   const handleDeleteCancel = () => {
     setDeletingContact(null);
+  };
+
+  // Find source by ID
+  const getSourceById = (sourceId: string | undefined): Source | null => {
+    if (!sourceId) return null;
+    return sources.find(s => s.id === sourceId) || null;
   };
 
   const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
@@ -264,6 +318,9 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                   Тип
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  Источник
+                </th>
+                <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Email
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
@@ -271,6 +328,9 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Компания
+                </th>
+                <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  Владелец
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Создан
@@ -309,6 +369,34 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                     )}
                   </td>
                   <td className="px-4 py-1.5">
+                    {(() => {
+                      const sourceData = getSourceById(contact.source);
+                      return sourceData ? (
+                        <Badge
+                          style={{
+                            backgroundColor: sourceData.color
+                              ? `${sourceData.color}20`
+                              : '#3b82f620',
+                            color: sourceData.color || '#3b82f6',
+                          }}
+                        >
+                          {sourceData.name}
+                        </Badge>
+                      ) : contact.source ? (
+                        <Badge
+                          style={{
+                            backgroundColor: '#3b82f620',
+                            color: '#3b82f6',
+                          }}
+                        >
+                          {contact.source}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-4 py-1.5">
                     <div className="flex flex-col">
                       {contact.emails.length > 0 ? (
                         contact.emails.map((email, idx) => (
@@ -338,6 +426,15 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
                       {contact.company || '-'}
                     </span>
+                  </td>
+                  <td className="px-4 py-1.5">
+                    {contact.owner ? (
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400" title={contact.owner.email}>
+                        {contact.owner.name}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-1.5">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -463,7 +560,7 @@ export function ContactsTable({ initialPage = 1, initialSearch = '' }: ContactsT
         contactId={previewContactId}
         isOpen={!!previewContactId}
         onClose={() => setPreviewContactId(null)}
-        onDeleted={() => fetchContacts(currentPage, currentSearch)}
+        onDeleted={() => fetchContacts(currentPage, currentSearch, currentOwnerId, currentContactType, currentSource)}
       />
     </>
   );

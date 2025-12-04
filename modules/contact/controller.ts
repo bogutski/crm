@@ -7,10 +7,12 @@ import {
   ContactsListResponse,
   ContactFilters,
   ContactTypeResponse,
+  OwnerResponse,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
-// Импортируем DictionaryItem чтобы модель была зарегистрирована для populate
+// Импортируем DictionaryItem и User чтобы модели были зарегистрированы для populate
 import '@/modules/dictionary/model';
+import '@/modules/user/model';
 
 function toContactTypeResponse(contactType: mongoose.Types.ObjectId | IContactType | undefined): ContactTypeResponse | null {
   if (!contactType) return null;
@@ -34,6 +36,28 @@ function toContactTypeResponse(contactType: mongoose.Types.ObjectId | IContactTy
   };
 }
 
+function toOwnerResponse(owner: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name: string; email: string } | undefined): OwnerResponse | null {
+  if (!owner) return null;
+
+  // Если это ObjectId (не был populate), возвращаем null
+  if (owner instanceof mongoose.Types.ObjectId) {
+    return null;
+  }
+
+  // Проверяем что это объект с _id (populated User)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const u = owner as any;
+  if (!u._id || !u.name) {
+    return null;
+  }
+
+  return {
+    id: u._id.toString(),
+    name: u.name,
+    email: u.email,
+  };
+}
+
 function toContactResponse(contact: IContact): ContactResponse {
   return {
     id: contact._id.toString(),
@@ -45,7 +69,7 @@ function toContactResponse(contact: IContact): ContactResponse {
     notes: contact.notes,
     contactType: toContactTypeResponse(contact.contactType),
     source: contact.source,
-    ownerId: contact.ownerId.toString(),
+    owner: toOwnerResponse(contact.ownerId as any),
     createdAt: contact.createdAt,
     updatedAt: contact.updatedAt,
   };
@@ -73,11 +97,21 @@ export async function getContacts(filters: ContactFilters): Promise<ContactsList
   }
 
   if (contactType) {
-    query.contactType = contactType;
+    if (contactType === '_null_') {
+      // Фильтр по пустым значениям (null или отсутствует)
+      query.contactType = { $in: [null, undefined] };
+    } else {
+      query.contactType = contactType;
+    }
   }
 
   if (source) {
-    query.source = source;
+    if (source === '_null_') {
+      // Фильтр по пустым значениям (null или отсутствует)
+      query.source = { $in: [null, undefined] };
+    } else {
+      query.source = source;
+    }
   }
 
   const skip = (page - 1) * limit;
@@ -85,6 +119,7 @@ export async function getContacts(filters: ContactFilters): Promise<ContactsList
   const [contacts, total] = await Promise.all([
     Contact.find(query)
       .populate('contactType', '_id name properties')
+      .populate('ownerId', '_id name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -103,7 +138,8 @@ export async function getContactById(id: string): Promise<ContactResponse | null
   await dbConnect();
 
   const contact = await Contact.findById(id)
-    .populate('contactType', '_id name properties');
+    .populate('contactType', '_id name properties')
+    .populate('ownerId', '_id name email');
   if (!contact) return null;
 
   return toContactResponse(contact);
@@ -124,8 +160,9 @@ export async function createContact(data: CreateContactDTO): Promise<ContactResp
     ownerId: data.ownerId,
   });
 
-  // Populate contactType для ответа
+  // Populate contactType и ownerId для ответа
   await contact.populate('contactType', '_id name properties');
+  await contact.populate('ownerId', '_id name email');
 
   return toContactResponse(contact);
 }
@@ -147,7 +184,9 @@ export async function updateContact(
     id,
     { $set: updateData },
     { new: true }
-  ).populate('contactType', '_id name properties');
+  )
+    .populate('contactType', '_id name properties')
+    .populate('ownerId', '_id name email');
 
   if (!contact) return null;
 
@@ -166,6 +205,7 @@ export async function getContactsByOwner(ownerId: string): Promise<ContactRespon
 
   const contacts = await Contact.find({ ownerId })
     .populate('contactType', '_id name properties')
+    .populate('ownerId', '_id name email')
     .sort({ createdAt: -1 });
   return contacts.map(toContactResponse);
 }

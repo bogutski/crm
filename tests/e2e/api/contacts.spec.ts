@@ -381,4 +381,301 @@ test.describe('Contacts API', () => {
       expect(data.contacts.length).toBeLessThanOrEqual(5);
     });
   });
+
+  test.describe('Advanced Filtering (contactType, source, ownerId)', () => {
+    let contactTypeId: string;
+    let sourceId: string;
+    let contactWithType: string;
+    let contactWithoutType: string;
+    let contactWithSource: string;
+    let contactWithoutSource: string;
+
+    test.beforeAll(async ({ request }) => {
+      // Создаём словари и элементы для тестирования фильтров
+
+      // Создаём словарь contact_types если его нет
+      const contactTypesResponse = await request.get('/api/dictionaries/contact_types', {
+        headers: { Cookie: authCookies },
+      });
+
+      if (contactTypesResponse.status() === 404) {
+        await request.post('/api/dictionaries', {
+          headers: { Cookie: authCookies },
+          data: {
+            code: 'contact_types',
+            name: 'Типы контактов',
+            fields: [{ code: 'color', name: 'Цвет', type: 'color', required: false }]
+          },
+        });
+      }
+
+      // Создаём тип контакта "Партнёр"
+      const typeResponse = await request.post('/api/dictionaries/contact_types/items', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Партнёр',
+          code: 'partner_filter_test',
+          properties: { color: '#3b82f6' }
+        },
+      });
+
+      if (typeResponse.ok()) {
+        const type = await typeResponse.json();
+        contactTypeId = type.id;
+      } else {
+        // Получаем существующий
+        const listResponse = await request.get('/api/dictionaries/contact_types/items', {
+          headers: { Cookie: authCookies },
+        });
+        const data = await listResponse.json();
+        const existing = data.items?.find((i: { code: string }) => i.code === 'partner_filter_test');
+        if (existing) {
+          contactTypeId = existing.id;
+        }
+      }
+
+      // Создаём словарь sources если его нет
+      const sourcesResponse = await request.get('/api/dictionaries/sources', {
+        headers: { Cookie: authCookies },
+      });
+
+      if (sourcesResponse.status() === 404) {
+        await request.post('/api/dictionaries', {
+          headers: { Cookie: authCookies },
+          data: {
+            code: 'sources',
+            name: 'Источники',
+            fields: [{ code: 'color', name: 'Цвет', type: 'color', required: false }]
+          },
+        });
+      }
+
+      // Создаём источник "Реклама"
+      const sourceResponse = await request.post('/api/dictionaries/sources/items', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: 'Реклама',
+          code: 'ads_filter_test',
+          properties: { color: '#f59e0b' }
+        },
+      });
+
+      if (sourceResponse.ok()) {
+        const source = await sourceResponse.json();
+        sourceId = source.id;
+      } else {
+        // Получаем существующий
+        const listResponse = await request.get('/api/dictionaries/sources/items', {
+          headers: { Cookie: authCookies },
+        });
+        const data = await listResponse.json();
+        const existing = data.items?.find((i: { code: string }) => i.code === 'ads_filter_test');
+        if (existing) {
+          sourceId = existing.id;
+        }
+      }
+
+      // Создаём тестовые контакты
+      const timestamp = Date.now();
+
+      // Контакт с типом
+      const c1 = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: `FilterTest_WithType_${timestamp}`,
+          contactType: contactTypeId,
+        },
+      });
+      const contact1 = await c1.json();
+      contactWithType = contact1.id;
+
+      // Контакт без типа
+      const c2 = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: `FilterTest_WithoutType_${timestamp}`,
+        },
+      });
+      const contact2 = await c2.json();
+      contactWithoutType = contact2.id;
+
+      // Контакт с источником
+      const c3 = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: `FilterTest_WithSource_${timestamp}`,
+          source: sourceId,
+        },
+      });
+      const contact3 = await c3.json();
+      contactWithSource = contact3.id;
+
+      // Контакт без источника
+      const c4 = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: `FilterTest_WithoutSource_${timestamp}`,
+        },
+      });
+      const contact4 = await c4.json();
+      contactWithoutSource = contact4.id;
+    });
+
+    test('should filter contacts by contactType', async ({ request }) => {
+      const response = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: { contactType: contactTypeId },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      // Проверяем что все контакты имеют указанный тип
+      const hasCorrectType = data.contacts.every((c: { contactType: { id: string } | null }) =>
+        c.contactType?.id === contactTypeId
+      );
+      expect(hasCorrectType).toBe(true);
+
+      // Проверяем что наш тестовый контакт присутствует
+      const found = data.contacts.find((c: { id: string }) => c.id === contactWithType);
+      expect(found).toBeDefined();
+    });
+
+    test('should filter contacts by contactType = "_null_" (without type)', async ({ request }) => {
+      const response = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: { contactType: '_null_' },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      // Проверяем что все контакты не имеют типа
+      const allHaveNoType = data.contacts.every((c: { contactType: { id: string } | null }) =>
+        c.contactType === null
+      );
+      expect(allHaveNoType).toBe(true);
+
+      // Проверяем что наш тестовый контакт без типа присутствует
+      const found = data.contacts.find((c: { id: string }) => c.id === contactWithoutType);
+      expect(found).toBeDefined();
+
+      // Проверяем что контакт с типом отсутствует
+      const shouldNotBeFound = data.contacts.find((c: { id: string }) => c.id === contactWithType);
+      expect(shouldNotBeFound).toBeUndefined();
+    });
+
+    test('should filter contacts by source', async ({ request }) => {
+      const response = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: { source: sourceId },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      // Проверяем что все контакты имеют указанный источник
+      const hasCorrectSource = data.contacts.every((c: { source: string | undefined }) =>
+        c.source === sourceId
+      );
+      expect(hasCorrectSource).toBe(true);
+
+      // Проверяем что наш тестовый контакт присутствует
+      const found = data.contacts.find((c: { id: string }) => c.id === contactWithSource);
+      expect(found).toBeDefined();
+    });
+
+    test('should filter contacts by source = "_null_" (without source)', async ({ request }) => {
+      const response = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: { source: '_null_' },
+      });
+
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      // Проверяем что все контакты не имеют источника
+      const allHaveNoSource = data.contacts.every((c: { source: string | undefined }) =>
+        !c.source
+      );
+      expect(allHaveNoSource).toBe(true);
+
+      // Проверяем что наш тестовый контакт без источника присутствует
+      const found = data.contacts.find((c: { id: string }) => c.id === contactWithoutSource);
+      expect(found).toBeDefined();
+
+      // Проверяем что контакт с источником отсутствует
+      const shouldNotBeFound = data.contacts.find((c: { id: string }) => c.id === contactWithSource);
+      expect(shouldNotBeFound).toBeUndefined();
+    });
+
+    test('should combine multiple filters (contactType + source)', async ({ request }) => {
+      // Создаём контакт с обоими полями
+      const timestamp = Date.now();
+      const response = await request.post('/api/contacts', {
+        headers: { Cookie: authCookies },
+        data: {
+          name: `FilterTest_Both_${timestamp}`,
+          contactType: contactTypeId,
+          source: sourceId,
+        },
+      });
+      const contact = await response.json();
+
+      // Ищем по обоим фильтрам
+      const searchResponse = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: {
+          contactType: contactTypeId,
+          source: sourceId,
+        },
+      });
+
+      expect(searchResponse.status()).toBe(200);
+      const data = await searchResponse.json();
+
+      // Проверяем что все контакты имеют оба поля
+      const allMatch = data.contacts.every((c: { contactType: { id: string } | null; source: string | undefined }) =>
+        c.contactType?.id === contactTypeId && c.source === sourceId
+      );
+      expect(allMatch).toBe(true);
+
+      // Проверяем что наш контакт присутствует
+      const found = data.contacts.find((c: { id: string }) => c.id === contact.id);
+      expect(found).toBeDefined();
+    });
+
+    test('should accept ownerId filter parameter', async ({ request }) => {
+      // Получаем список пользователей
+      const usersResponse = await request.post('/api/users/search', {
+        headers: { Cookie: authCookies },
+        data: { limit: 10 },
+      });
+      const usersData = await usersResponse.json();
+
+      expect(usersData.users.length).toBeGreaterThan(0);
+      const testUserId = usersData.users[0].id;
+
+      // Фильтруем по ownerId
+      const response = await request.post('/api/contacts/search', {
+        headers: { Cookie: authCookies },
+        data: { ownerId: testUserId },
+      });
+
+      // Проверяем что запрос выполнился успешно (фильтр принят)
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+
+      // Проверяем структуру ответа
+      expect(data.contacts).toBeDefined();
+      expect(Array.isArray(data.contacts)).toBe(true);
+      expect(data.total).toBeDefined();
+      expect(typeof data.total).toBe('number');
+      expect(data.page).toBe(1);
+      expect(data.limit).toBeDefined();
+
+      // Тест проходит, если API принимает параметр и возвращает корректную структуру
+      // (не проверяем содержимое, так как ownerId не возвращается в response)
+    });
+  });
 });

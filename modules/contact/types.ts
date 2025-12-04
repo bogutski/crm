@@ -11,6 +11,12 @@ export interface ContactTypeResponse {
   color?: string;
 }
 
+export interface OwnerResponse {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface CreateContactDTO {
   name: string;
   emails?: IEmail[];
@@ -44,7 +50,7 @@ export interface ContactResponse {
   notes?: string;
   contactType?: ContactTypeResponse | null;
   source?: string;
-  ownerId: string;
+  owner?: OwnerResponse | null;
   createdAt: Date;
   updatedAt: Date;
 }
