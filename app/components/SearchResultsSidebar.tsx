@@ -72,7 +72,7 @@ export function SearchResultsSidebar({
     : 0;
 
   const hasResults = totalResults > 0;
-  const hasQuery = query.trim().length >= 2;
+  const hasQuery = query.trim().length >= 1;
 
   const categories = [
     {
@@ -171,43 +171,49 @@ export function SearchResultsSidebar({
         <div className="flex-1 flex overflow-hidden">
           {/* Left sidebar - categories */}
           <div className="w-48 border-r border-zinc-100 dark:border-zinc-800 py-2 flex-shrink-0">
-            {categories.map((cat) => {
+            {categories.map((cat, index) => {
               const Icon = cat.icon;
               const isActive = activeFilter === cat.id;
               const isDisabled = cat.id !== 'all' && cat.count === 0;
 
               return (
-                <button
-                  key={cat.id}
-                  onClick={() => !isDisabled && setActiveFilter(cat.id)}
-                  disabled={isDisabled}
-                  className={`
-                    w-full flex items-center justify-between px-3 py-2 text-left text-sm
-                    transition-colors
-                    ${isActive
-                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50'
-                      : isDisabled
-                        ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
-                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className={`w-4 h-4 ${isDisabled ? 'text-zinc-300 dark:text-zinc-600' : cat.color}`} />
-                    <span>{cat.label}</span>
-                  </div>
-                  {hasQuery && (
-                    <span className={`
-                      text-xs px-1.5 py-0.5 rounded
+                <div key={cat.id}>
+                  <button
+                    onClick={() => !isDisabled && setActiveFilter(cat.id)}
+                    disabled={isDisabled}
+                    className={`
+                      w-full flex items-center justify-between px-3 py-2 text-left text-sm
+                      transition-colors
                       ${isActive
-                        ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
-                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50'
+                        : isDisabled
+                          ? 'text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
                       }
-                    `}>
-                      {cat.count}
-                    </span>
+                    `}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-4 h-4 ${isDisabled ? 'text-zinc-300 dark:text-zinc-600' : cat.color}`} />
+                      <span>{cat.label}</span>
+                    </div>
+                    {hasQuery && (
+                      <span className={`
+                        text-xs px-1.5 py-0.5 rounded
+                        ${isActive
+                          ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                        }
+                      `}>
+                        {cat.count}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Spacing after "All results" */}
+                  {index === 0 && (
+                    <div className="my-3" />
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -218,7 +224,6 @@ export function SearchResultsSidebar({
               <div className="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-500">
                 <Search className="w-12 h-12 mb-3 opacity-50" />
                 <p className="text-sm">Введите запрос для поиска</p>
-                <p className="text-xs mt-1">Минимум 2 символа</p>
               </div>
             ) : isLoading ? (
               <div className="flex items-center justify-center h-full">

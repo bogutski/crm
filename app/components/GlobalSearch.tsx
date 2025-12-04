@@ -27,7 +27,7 @@ export function GlobalSearch() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const performSearch = useCallback(async (searchQuery: string) => {
-    if (searchQuery.trim().length < 2) {
+    if (searchQuery.trim().length < 1) {
       setResults(null);
       return;
     }
