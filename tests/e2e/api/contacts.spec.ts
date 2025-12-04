@@ -34,7 +34,7 @@ test.describe('Contacts API', () => {
     test('POST /api/contacts/search should redirect to login without auth', async ({ playwright }) => {
       // Создаём новый контекст без cookies (без следования редиректам)
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.post('/api/contacts/search', {
         data: {},
@@ -48,7 +48,7 @@ test.describe('Contacts API', () => {
 
     test('POST /api/contacts should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.post('/api/contacts', {
         data: { firstName: 'Test', lastName: 'Contact' },
