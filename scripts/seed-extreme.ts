@@ -121,6 +121,26 @@ function generateContactDoc(ownerId: mongoose.Types.ObjectId) {
     });
   }
 
+  // For ~10% of contacts, leave type and/or source empty
+  const incompleteData = Math.random() < 0.1; // 10% chance
+  let type: string | undefined = randomElement(contactTypes);
+  let source: string | undefined = randomElement(sources);
+
+  if (incompleteData) {
+    const missingFields = Math.random();
+    if (missingFields < 0.33) {
+      // Missing only type
+      type = undefined;
+    } else if (missingFields < 0.66) {
+      // Missing only source
+      source = undefined;
+    } else {
+      // Missing both
+      type = undefined;
+      source = undefined;
+    }
+  }
+
   return {
     _id: new mongoose.Types.ObjectId(),
     name: `${firstName} ${lastName}`,
@@ -128,8 +148,8 @@ function generateContactDoc(ownerId: mongoose.Types.ObjectId) {
     phones,
     company: hasCompany ? faker.company.name() : undefined,
     position: hasCompany && Math.random() > 0.4 ? faker.person.jobTitle() : undefined,
-    type: randomElement(contactTypes),
-    source: randomElement(sources),
+    contactType: type,
+    source,
     industry: randomElement(industries),
     ownerId,
     createdAt: faker.date.between({ from: '2023-01-01', to: new Date() }),

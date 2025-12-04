@@ -310,14 +310,45 @@ function randomElement<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Contact types and sources for realistic data
+const contactTypes = ['client', 'lead', 'partner', 'supplier', 'vip', 'potential'];
+const contactSources = ['website', 'ads', 'referral', 'cold_call', 'exhibition', 'social'];
+
 // Contact generation using Faker
-function generateContact() {
+function generateContact(
+  typeIds: Record<string, string>,
+  srcIds: Record<string, string>
+) {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
   const hasEmail = faker.datatype.boolean({ probability: 0.9 });
   const hasPhone = faker.datatype.boolean({ probability: 0.85 });
   const hasCompany = faker.datatype.boolean({ probability: 0.7 });
   const hasPosition = faker.datatype.boolean({ probability: 0.6 });
+
+  // For ~10% of contacts, leave type and/or source empty
+  const incompleteData = Math.random() < 0.1; // 10% chance
+  let typeCode: string | undefined = randomElement(contactTypes);
+  let sourceCode: string | undefined = randomElement(contactSources);
+
+  if (incompleteData) {
+    const missingFields = Math.random();
+    if (missingFields < 0.33) {
+      // Missing only type
+      typeCode = undefined;
+    } else if (missingFields < 0.66) {
+      // Missing only source
+      sourceCode = undefined;
+    } else {
+      // Missing both
+      typeCode = undefined;
+      sourceCode = undefined;
+    }
+  }
+
+  // Convert codes to IDs
+  const contactType = typeCode ? typeIds[typeCode] : undefined;
+  const source = sourceCode ? srcIds[sourceCode] : undefined;
 
   return {
     name: `${firstName} ${lastName}`,
@@ -335,6 +366,8 @@ function generateContact() {
     }] : [],
     company: hasCompany ? faker.company.name() : undefined,
     position: hasPosition ? faker.person.jobTitle() : undefined,
+    contactType,
+    source,
   };
 }
 
@@ -702,10 +735,35 @@ async function main() {
   }
   console.log(`   Created ${channelsCreated} channels`);
 
+  // Get contact types and sources IDs
+  console.log('\n6. Getting contact types and sources...');
+  const contactTypeIds: Record<string, string> = {};
+  const sourceIds: Record<string, string> = {};
+
+  try {
+    const typesResponse = await api.get<{ items: { id: string; code: string }[] }>('/api/dictionaries/contact_types/items');
+    typesResponse.items.forEach(item => {
+      contactTypeIds[item.code] = item.id;
+    });
+    console.log(`   Found ${typesResponse.items.length} contact types`);
+  } catch (error) {
+    console.log('   Could not fetch contact types');
+  }
+
+  try {
+    const sourcesResponse = await api.get<{ items: { id: string; code: string }[] }>('/api/dictionaries/sources/items');
+    sourcesResponse.items.forEach(item => {
+      sourceIds[item.code] = item.id;
+    });
+    console.log(`   Found ${sourcesResponse.items.length} sources`);
+  } catch (error) {
+    console.log('   Could not fetch sources');
+  }
+
   // Create contacts - 1000 for realistic data
   const CONTACT_COUNT = 1000;
   const BATCH_SIZE = 50; // Process in batches for performance
-  console.log(`\n6. Creating ${CONTACT_COUNT} contacts...`);
+  console.log(`\n7. Creating ${CONTACT_COUNT} contacts...`);
 
   const createdContacts: { id: string; name: string }[] = [];
   let contactErrors = 0;
@@ -715,7 +773,7 @@ async function main() {
     const batchPromises = [];
 
     for (let i = batchStart; i < batchEnd; i++) {
-      const contact = generateContact();
+      const contact = generateContact(contactTypeIds, sourceIds);
       batchPromises.push(
         api.post<{ id: string; name: string }>('/api/contacts', contact, 201)
           .then(result => {
@@ -733,7 +791,7 @@ async function main() {
   console.log(`\n   Created ${createdContacts.length} contacts${contactErrors > 0 ? ` (${contactErrors} errors)` : ''}`);
 
   // Get priority IDs from dictionaries
-  console.log('\n7. Getting priorities for opportunities...');
+  console.log('\n8. Getting priorities for opportunities...');
   let priorityIds: string[] = [];
   try {
     const prioritiesResponse = await api.get<{ items: { id: string }[] }>('/api/dictionaries/opportunity_priority/items');
