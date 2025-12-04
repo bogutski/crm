@@ -29,7 +29,7 @@ test.describe('Opportunities API', () => {
   test.describe('Unauthorized access', () => {
     test('POST /api/opportunities/search should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.post('/api/opportunities/search', {
         data: {},
@@ -42,7 +42,7 @@ test.describe('Opportunities API', () => {
 
     test('POST /api/opportunities should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.post('/api/opportunities', {
         data: { name: 'Test', amount: 1000 },

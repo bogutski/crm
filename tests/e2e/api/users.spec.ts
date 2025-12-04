@@ -29,7 +29,7 @@ test.describe('Users API', () => {
   test.describe('Unauthorized access', () => {
     test('POST /api/users/search should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.post('/api/users/search', {
         data: {},
@@ -42,7 +42,7 @@ test.describe('Users API', () => {
 
     test('POST /api/users should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.post('/api/users', {
         data: { email: 'test@example.com', name: 'Test' },
@@ -55,7 +55,7 @@ test.describe('Users API', () => {
 
     test('GET /api/users/:id should redirect to login without auth', async ({ playwright }) => {
       const context = await playwright.request.newContext({
-        baseURL: 'http://localhost:3001',
+        baseURL: 'http://localhost:3000',
       });
       const response = await context.get('/api/users/507f1f77bcf86cd799439011', {
         maxRedirects: 0,

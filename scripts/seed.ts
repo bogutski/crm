@@ -20,7 +20,7 @@ import { faker } from '@faker-js/faker/locale/ru';
 // Load .env.local
 config({ path: '.env.local' });
 
-const BASE_URL = process.env.API_URL || 'http://localhost:3001';
+const BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
 // Collections to clear on reset (commented out - uncomment to enable full reset)
