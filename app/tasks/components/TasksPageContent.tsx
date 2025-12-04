@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FolderKanban, ListTodo, Plus, X } from 'lucide-react';
+import { FolderKanban, ListTodo, Plus, X, SquareKanban, Table } from 'lucide-react';
 import { TasksTable } from './TasksTable';
 import { TasksSearch } from './TasksSearch';
 import { CreateTaskButton } from './CreateTaskButton';
+import { TasksKanban } from './TasksKanban';
 
 interface Project {
   id: string;
@@ -14,6 +15,7 @@ interface Project {
 }
 
 type TaskStatusFilter = 'all' | 'open' | 'in_progress' | 'completed' | 'cancelled';
+type ViewMode = 'table' | 'kanban';
 
 interface TasksPageContentProps {
   initialPage?: number;
@@ -44,6 +46,7 @@ export function TasksPageContent({
   const [selectedStatus, setSelectedStatus] = useState<TaskStatusFilter>(
     (initialStatus as TaskStatusFilter) || 'all'
   );
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -259,18 +262,51 @@ export function TasksPageContent({
           </div>
 
           <div className="flex items-center gap-4">
+            {/* View Mode Toggle */}
+            <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+                }`}
+                title="Таблица"
+              >
+                <Table className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === 'kanban'
+                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+                }`}
+                title="Kanban"
+              >
+                <SquareKanban className="w-4 h-4" />
+              </button>
+            </div>
             <TasksSearch initialSearch={currentSearch} />
             <CreateTaskButton projects={projects} defaultProjectId={selectedProjectId} />
           </div>
         </div>
 
-        {/* Tasks Table */}
-        <TasksTable
-          initialPage={initialPage}
-          initialSearch={currentSearch}
-          projectId={selectedProjectId}
-          status={selectedStatus === 'all' ? null : selectedStatus}
-        />
+        {/* Tasks View */}
+        {viewMode === 'table' ? (
+          <TasksTable
+            initialPage={initialPage}
+            initialSearch={currentSearch}
+            projectId={selectedProjectId}
+            status={selectedStatus === 'all' ? null : selectedStatus}
+          />
+        ) : (
+          <TasksKanban
+            initialSearch={currentSearch}
+            projectId={selectedProjectId}
+            status={null}
+          />
+        )}
       </div>
     </div>
   );
