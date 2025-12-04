@@ -63,9 +63,19 @@ interface OpportunitiesTableProps {
   initialPage?: number;
   initialSearch?: string;
   pipelineId?: string | null;
+  ownerId?: string;
+  priorityId?: string;
+  stageId?: string;
 }
 
-export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipelineId }: OpportunitiesTableProps) {
+export function OpportunitiesTable({
+  initialPage = 1,
+  initialSearch = '',
+  pipelineId,
+  ownerId,
+  priorityId,
+  stageId,
+}: OpportunitiesTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -114,6 +124,9 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
           page,
           ...(search && { search }),
           ...(pipelineId && { pipelineId }),
+          ...(ownerId && { ownerId }),
+          ...(priorityId && { priorityId }),
+          ...(stageId && { stageId }),
         }),
       });
       if (!response.ok) {
@@ -126,7 +139,7 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
     } finally {
       setLoading(false);
     }
-  }, [pipelineId]);
+  }, [pipelineId, ownerId, priorityId, stageId]);
 
   useEffect(() => {
     fetchOpportunities(currentPage, currentSearch);
@@ -292,6 +305,9 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
                   Контакт
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  Владелец
+                </th>
+                <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Дата закрытия
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
@@ -359,6 +375,15 @@ export function OpportunitiesTable({ initialPage = 1, initialSearch = '', pipeli
                       >
                         {opportunity.contact.name}
                       </button>
+                    ) : (
+                      <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-1.5">
+                    {opportunity.owner ? (
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400" title={opportunity.owner.email}>
+                        {opportunity.owner.name}
+                      </span>
                     ) : (
                       <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
                     )}

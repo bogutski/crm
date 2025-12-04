@@ -4,7 +4,7 @@ import { Header } from '../components/Header';
 import { OpportunitiesPageContent } from './components/OpportunitiesPageContent';
 
 interface OpportunitiesPageProps {
-  searchParams: Promise<{ page?: string; search?: string; pipeline?: string }>;
+  searchParams: Promise<{ page?: string; search?: string; pipeline?: string; view?: string }>;
 }
 
 export default async function OpportunitiesPage({ searchParams }: OpportunitiesPageProps) {
@@ -17,13 +17,14 @@ export default async function OpportunitiesPage({ searchParams }: OpportunitiesP
   const params = await searchParams;
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-black">
+    <div className="min-h-screen bg-white dark:bg-black">
       <Header userName={session?.user?.name || session?.user?.email} />
 
-      <main className="flex-1 flex flex-col px-6 pt-6 min-h-0">
+      <main className="px-6 py-6">
         <OpportunitiesPageContent
           initialPage={params.page ? parseInt(params.page, 10) : 1}
           initialSearch={params.search || ''}
+          initialView={params.view as 'table' | 'kanban' | undefined}
         />
       </main>
     </div>

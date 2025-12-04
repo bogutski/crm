@@ -8,6 +8,7 @@ import { OpportunitiesTable } from './OpportunitiesTable';
 import { KanbanBoard } from './KanbanBoard';
 import { OpportunitiesSearch } from './OpportunitiesSearch';
 import { CreateOpportunityButton } from './CreateOpportunityButton';
+import { OpportunitiesFilters } from './OpportunitiesFilters';
 
 interface Pipeline {
   id: string;
@@ -33,17 +34,26 @@ type ViewMode = 'table' | 'kanban';
 interface OpportunitiesPageContentProps {
   initialPage?: number;
   initialSearch?: string;
+  initialView?: ViewMode;
 }
 
-export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }: OpportunitiesPageContentProps) {
+export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '', initialView }: OpportunitiesPageContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [isLoading, setIsLoading] = useState(true);
   const [stages, setStages] = useState<Stage[]>([]);
+  const [filters, setFilters] = useState({
+    ownerId: searchParams.get('ownerId') || undefined,
+    priorityId: searchParams.get('priorityId') || undefined,
+    stageId: searchParams.get('stageId') || undefined,
+  });
+
+  // Read viewMode from URL
+  const viewModeFromUrl = (searchParams.get('view') || initialView || 'table') as ViewMode;
+  const viewMode = viewModeFromUrl;
 
   // Load pipelines
   useEffect(() => {
@@ -108,6 +118,48 @@ export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }
     router.push(`?${newParams.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    if (mode === 'table') {
+      newParams.delete('view');
+    } else {
+      newParams.set('view', mode);
+    }
+    router.push(`?${newParams.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+
+  const handleFilterChange = useCallback((newFilters: {
+    ownerId: string | undefined;
+    priorityId: string | undefined;
+    stageId: string | undefined;
+  }) => {
+    setFilters(newFilters);
+
+    // Update URL
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    if (newFilters.ownerId) {
+      newParams.set('ownerId', newFilters.ownerId);
+    } else {
+      newParams.delete('ownerId');
+    }
+
+    if (newFilters.priorityId) {
+      newParams.set('priorityId', newFilters.priorityId);
+    } else {
+      newParams.delete('priorityId');
+    }
+
+    if (newFilters.stageId) {
+      newParams.set('stageId', newFilters.stageId);
+    } else {
+      newParams.delete('stageId');
+    }
+
+    newParams.delete('page'); // Reset page when changing filters
+    router.push(`?${newParams.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+
   const selectedPipeline = pipelines.find(p => p.id === selectedPipelineId);
 
   const currentSearch = searchParams.get('search') || initialSearch;
@@ -121,9 +173,9 @@ export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div>
       {/* Header row: Title + Pipeline tabs + View toggle + Search + Create button */}
-      <div className="flex items-center justify-between gap-4 mb-4 flex-shrink-0">
+      <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             Сделки
@@ -152,7 +204,7 @@ export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }
               {/* View Mode Toggle */}
               <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
                 <button
-                  onClick={() => setViewMode('table')}
+                  onClick={() => handleViewModeChange('table')}
                   className={`p-1.5 rounded-md transition-colors ${
                     viewMode === 'table'
                       ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm'
@@ -163,7 +215,7 @@ export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }
                   <Table className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setViewMode('kanban')}
+                  onClick={() => handleViewModeChange('kanban')}
                   className={`p-1.5 rounded-md transition-colors ${
                     viewMode === 'kanban'
                       ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm'
@@ -179,6 +231,16 @@ export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }
         </div>
 
         <div className="flex items-center gap-4">
+          {viewMode === 'table' && (
+            <OpportunitiesFilters
+              pipelineId={selectedPipelineId}
+              stages={stages}
+              ownerId={filters.ownerId}
+              priorityId={filters.priorityId}
+              stageId={filters.stageId}
+              onFilterChange={handleFilterChange}
+            />
+          )}
           <OpportunitiesSearch initialSearch={currentSearch} />
           <CreateOpportunityButton />
         </div>
@@ -197,18 +259,25 @@ export function OpportunitiesPageContent({ initialPage = 1, initialSearch = '' }
         </div>
       ) : (
         /* Content */
-        viewMode === 'table' ? (
-          <OpportunitiesTable
-            initialPage={initialPage}
-            initialSearch={currentSearch}
-            pipelineId={selectedPipelineId}
-          />
-        ) : (
-          <KanbanBoard
-            pipelineId={selectedPipelineId!}
-            stages={stages}
-          />
-        )
+        <>
+          {viewMode === 'table' ? (
+            <OpportunitiesTable
+              initialPage={initialPage}
+              initialSearch={currentSearch}
+              pipelineId={selectedPipelineId}
+              ownerId={filters.ownerId}
+              priorityId={filters.priorityId}
+              stageId={filters.stageId}
+            />
+          ) : (
+            <div className="h-[calc(100vh-168px)] flex flex-col min-h-0">
+              <KanbanBoard
+                pipelineId={selectedPipelineId!}
+                stages={stages}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

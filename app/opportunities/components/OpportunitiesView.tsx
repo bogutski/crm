@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { OpportunitiesTable } from './OpportunitiesTable';
 import { KanbanBoard } from './KanbanBoard';
 import { PipelineTabs } from './PipelineTabs';
+import { OpportunitiesFilters } from './OpportunitiesFilters';
 
 interface Pipeline {
   id: string;
@@ -41,6 +42,11 @@ export function OpportunitiesView({ initialPage = 1, initialSearch = '' }: Oppor
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    ownerId: searchParams.get('ownerId') || undefined,
+    priorityId: searchParams.get('priorityId') || undefined,
+    stageId: searchParams.get('stageId') || undefined,
+  });
 
   // Load pipelines
   useEffect(() => {
@@ -109,6 +115,38 @@ export function OpportunitiesView({ initialPage = 1, initialSearch = '' }: Oppor
     router.push(`?${newParams.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
+  const handleFilterChange = useCallback((newFilters: {
+    ownerId: string | undefined;
+    priorityId: string | undefined;
+    stageId: string | undefined;
+  }) => {
+    setFilters(newFilters);
+
+    // Update URL
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    if (newFilters.ownerId) {
+      newParams.set('ownerId', newFilters.ownerId);
+    } else {
+      newParams.delete('ownerId');
+    }
+
+    if (newFilters.priorityId) {
+      newParams.set('priorityId', newFilters.priorityId);
+    } else {
+      newParams.delete('priorityId');
+    }
+
+    if (newFilters.stageId) {
+      newParams.set('stageId', newFilters.stageId);
+    } else {
+      newParams.delete('stageId');
+    }
+
+    newParams.delete('page'); // Reset page when changing filters
+    router.push(`?${newParams.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+
   const selectedPipeline = pipelines.find(p => p.id === selectedPipelineId);
 
   if (isLoading) {
@@ -135,8 +173,8 @@ export function OpportunitiesView({ initialPage = 1, initialSearch = '' }: Oppor
 
   return (
     <div className="space-y-4">
-      {/* Pipeline tabs + View toggle - on header level */}
-      <div className="flex items-center gap-4">
+      {/* Pipeline tabs + View toggle + Filters - on header level */}
+      <div className="flex items-center justify-between gap-4">
         <PipelineTabs
           pipelines={pipelines}
           selectedPipelineId={selectedPipelineId}
@@ -144,6 +182,16 @@ export function OpportunitiesView({ initialPage = 1, initialSearch = '' }: Oppor
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
+        {viewMode === 'table' && (
+          <OpportunitiesFilters
+            pipelineId={selectedPipelineId}
+            stages={stages}
+            ownerId={filters.ownerId}
+            priorityId={filters.priorityId}
+            stageId={filters.stageId}
+            onFilterChange={handleFilterChange}
+          />
+        )}
       </div>
 
       {/* Content */}
@@ -152,6 +200,9 @@ export function OpportunitiesView({ initialPage = 1, initialSearch = '' }: Oppor
           initialPage={initialPage}
           initialSearch={initialSearch}
           pipelineId={selectedPipelineId}
+          ownerId={filters.ownerId}
+          priorityId={filters.priorityId}
+          stageId={filters.stageId}
         />
       ) : (
         <KanbanBoard
