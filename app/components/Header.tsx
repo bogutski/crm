@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Settings, FileText, Home } from 'lucide-react';
 import { Navigation } from './Navigation';
-import { LogoutButton } from './LogoutButton';
+import { UserMenu } from './UserMenu';
 import { GlobalSearch } from './GlobalSearch';
 
 interface HeaderProps {
@@ -36,10 +36,7 @@ export function Header({ userName }: HeaderProps) {
         >
           <Settings className="w-5 h-5" />
         </Link>
-        <span className="text-sm text-zinc-600 dark:text-zinc-400">
-          {userName}
-        </span>
-        <LogoutButton />
+        <UserMenu userName={userName} />
       </div>
     </header>
   );
