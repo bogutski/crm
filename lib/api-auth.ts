@@ -23,17 +23,26 @@ export interface ApiAuthResult {
 export async function apiAuth(request: NextRequest): Promise<ApiAuthResult | null> {
   // Проверяем внутренний вызов (только для server-to-server)
   const internalUserId = request.headers.get('x-internal-user-id');
+  const host = request.headers.get('host') || '';
+
+  console.log('[apiAuth] Checking auth:', {
+    hasInternalUserId: !!internalUserId,
+    internalUserId,
+    host,
+  });
+
   if (internalUserId) {
     // Для безопасности, проверяем что запрос идёт с localhost
-    const host = request.headers.get('host') || '';
     const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
 
     if (isLocalhost) {
+      console.log('[apiAuth] Internal auth successful for userId:', internalUserId);
       return {
         type: 'internal',
         userId: internalUserId,
       };
     }
+    console.log('[apiAuth] Internal auth rejected - not localhost:', host);
     // If not localhost, ignore internal header and continue with normal auth
   }
 

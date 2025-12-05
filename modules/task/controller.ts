@@ -106,7 +106,7 @@ function toTaskResponse(task: ITask, populatedLinkedEntity?: unknown): TaskRespo
     assignee: toAssigneeResponse(t.assigneeId),
     linkedTo: toLinkedEntityResponse(task.linkedTo, populatedLinkedEntity),
     owner: toOwnerResponse(t.ownerId),
-    ownerId: task.ownerId.toString(),
+    ownerId: task.ownerId?.toString() || '',
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
   };
@@ -255,6 +255,10 @@ export async function getTaskById(id: string): Promise<TaskResponse | null> {
 
 export async function createTask(data: CreateTaskDTO): Promise<TaskResponse> {
   await dbConnect();
+
+  if (!data.ownerId) {
+    throw new Error('ownerId is required to create a task');
+  }
 
   const taskData: Record<string, unknown> = {
     title: data.title,
