@@ -32,10 +32,10 @@ const allRoutes: ApiRoute[] = [
 const openApiDoc = generateOpenApiDocument(
   {
     info: {
-      title: 'CRM Proto API',
+      title: 'ClientBase API',
       version: '1.0.0',
       description: `
-# CRM Proto API
+# ClientBase API
 
 REST API для CRM системы.
 

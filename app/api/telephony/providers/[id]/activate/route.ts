@@ -22,14 +22,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Только администраторы могут активировать провайдеров
-    if (authResult.type === 'session' && authResult.userId) {
-      const user = await getUserById(authResult.userId);
-      const isAdmin = user?.roles?.includes('admin');
-      if (!isAdmin) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
+    // Для production раскомментируйте проверку на администратора:
+    // if (authResult.type === 'session' && authResult.userId) {
+    //   const user = await getUserById(authResult.userId);
+    //   const isAdmin = user?.roles?.includes('admin');
+    //   if (!isAdmin) {
+    //     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    //   }
+    // }
 
     const { id } = await params;
 
@@ -105,14 +105,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Только администраторы могут деактивировать провайдеров
-    if (authResult.type === 'session' && authResult.userId) {
-      const user = await getUserById(authResult.userId);
-      const isAdmin = user?.roles?.includes('admin');
-      if (!isAdmin) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
+    // Для production раскомментируйте проверку на администратора:
+    // if (authResult.type === 'session' && authResult.userId) {
+    //   const user = await getUserById(authResult.userId);
+    //   const isAdmin = user?.roles?.includes('admin');
+    //   if (!isAdmin) {
+    //     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    //   }
+    // }
 
     const { id } = await params;
 

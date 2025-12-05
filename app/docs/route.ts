@@ -6,7 +6,7 @@ export async function GET() {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>API Documentation - CRM Proto</title>
+  <title>API Documentation - ClientBase</title>
   <style>
     body {
       margin: 0;

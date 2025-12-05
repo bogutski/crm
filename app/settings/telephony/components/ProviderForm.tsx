@@ -28,7 +28,6 @@ const formSchema = z.object({
   apiSecret: z.string().optional(),
   accountSid: z.string().optional(),
   authToken: z.string().optional(),
-  defaultCallerId: z.string().optional(),
   recordCalls: z.boolean().optional(),
 });
 
@@ -53,7 +52,6 @@ export function ProviderForm({
     defaultValues: {
       name: existingProvider?.name || info.name,
       enabled: existingProvider?.enabled ?? true,
-      defaultCallerId: existingProvider?.settings?.defaultCallerId || '',
       recordCalls: existingProvider?.settings?.recordCalls ?? false,
     },
   });
@@ -75,7 +73,6 @@ export function ProviderForm({
         enabled: data.enabled,
         credentials: Object.keys(credentials).length > 0 ? credentials : undefined,
         settings: {
-          defaultCallerId: data.defaultCallerId || undefined,
           recordCalls: data.recordCalls,
         },
       };
@@ -99,7 +96,6 @@ export function ProviderForm({
             enabled: data.enabled,
             credentials: Object.keys(credentials).length > 0 ? credentials : undefined,
             settings: {
-              defaultCallerId: data.defaultCallerId || undefined,
               recordCalls: data.recordCalls,
             },
           }),
@@ -206,22 +202,6 @@ export function ProviderForm({
             <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
               Настройки
             </h4>
-
-            <FormField
-              label="Номер для исходящих (Caller ID)"
-              htmlFor="defaultCallerId"
-              error={errors.defaultCallerId?.message}
-            >
-              <Input
-                id="defaultCallerId"
-                {...register('defaultCallerId')}
-                placeholder="+14155551234"
-                error={errors.defaultCallerId?.message}
-              />
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Номер, который будет отображаться при исходящих звонках
-              </p>
-            </FormField>
 
             <label className="flex items-center gap-3 cursor-pointer">
               <input
