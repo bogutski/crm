@@ -21,6 +21,16 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow internal API requests (server-to-server calls from AI tools)
+  const internalUserId = request.headers.get('x-internal-user-id');
+  if (pathname.startsWith('/api/') && internalUserId) {
+    // Only allow from localhost for security
+    const host = request.headers.get('host') || '';
+    if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
+      return NextResponse.next();
+    }
+  }
+
   // Check for session cookie (authjs.session-token or __Secure-authjs.session-token)
   const sessionToken =
     request.cookies.get('authjs.session-token')?.value ||

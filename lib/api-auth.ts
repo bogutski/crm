@@ -3,7 +3,7 @@ import { auth } from '@/modules/user';
 import { verifyApiToken, ApiTokenResponse } from '@/modules/api-token';
 
 export interface ApiAuthResult {
-  type: 'session' | 'api-token';
+  type: 'session' | 'api-token' | 'internal';
   userId?: string;
   apiToken?: ApiTokenResponse;
 }
@@ -13,12 +13,30 @@ export interface ApiAuthResult {
  * Поддерживает:
  * - Session-based auth (cookies)
  * - API Token auth (Bearer token)
+ * - Internal auth (X-Internal-User-Id header) - for server-to-server calls
  *
  * Порядок проверки:
- * 1. Если есть Bearer token в заголовке Authorization — проверяем API токен
- * 2. Иначе проверяем сессию через NextAuth
+ * 1. Если есть X-Internal-User-Id — это внутренний вызов (server-to-server)
+ * 2. Если есть Bearer token в заголовке Authorization — проверяем API токен
+ * 3. Иначе проверяем сессию через NextAuth
  */
 export async function apiAuth(request: NextRequest): Promise<ApiAuthResult | null> {
+  // Проверяем внутренний вызов (только для server-to-server)
+  const internalUserId = request.headers.get('x-internal-user-id');
+  if (internalUserId) {
+    // Для безопасности, проверяем что запрос идёт с localhost
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+
+    if (isLocalhost) {
+      return {
+        type: 'internal',
+        userId: internalUserId,
+      };
+    }
+    // If not localhost, ignore internal header and continue with normal auth
+  }
+
   const authHeader = request.headers.get('authorization');
 
   // Проверяем Bearer token

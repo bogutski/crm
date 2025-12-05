@@ -2,7 +2,12 @@
  * MCP Tools definitions and handlers
  * These tools are exposed via the MCP server endpoint
  * All tools use internal REST API calls for consistency
+ *
+ * For internal calls (from AI streaming tools), pass userId as apiToken
+ * and set INTERNAL_USER_TOKEN to use session-based auth instead of Bearer token
  */
+
+export const INTERNAL_USER_TOKEN = '__internal_user__';
 
 // Tool definitions for MCP
 export const MCP_TOOLS = [
@@ -925,22 +930,35 @@ export const MCP_TOOLS = [
 /**
  * Helper to make internal API calls
  * Uses the API token for authentication
+ * For internal calls, use INTERNAL_USER_TOKEN as apiToken to skip Bearer auth
  */
 async function apiCall(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   apiToken: string,
-  body?: unknown
+  body?: unknown,
+  userId?: string
 ): Promise<unknown> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
   const url = `${baseUrl}${path}`;
 
+  // For internal calls, we use a special header to pass userId
+  // This allows the API to authenticate via internal mechanism
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (apiToken === INTERNAL_USER_TOKEN && userId) {
+    // Internal call - use X-Internal-User-Id header
+    headers['X-Internal-User-Id'] = userId;
+  } else {
+    // External call - use Bearer token
+    headers['Authorization'] = `Bearer ${apiToken}`;
+  }
+
   const response = await fetch(url, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiToken}`,
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -956,14 +974,28 @@ async function apiCall(
 export async function handleMCPToolCall(
   name: string,
   args: Record<string, unknown>,
-  _userId: string,
+  userId: string,
   apiToken: string
 ): Promise<unknown> {
+  console.log(`[MCP Tools] handleMCPToolCall: ${name}`, { args, userId, isInternal: apiToken === INTERNAL_USER_TOKEN });
+
+  // Create a wrapper for apiCall that includes apiToken and userId for internal calls
+  const api = async (
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    body?: unknown
+  ) => {
+    console.log(`[MCP Tools] API call: ${method} ${path}`);
+    const result = await apiCall(method, path, apiToken, body, userId);
+    console.log(`[MCP Tools] API call completed: ${method} ${path}`);
+    return result;
+  };
+
   switch (name) {
     // ==================== КОНТАКТЫ ====================
     case 'search_contacts': {
       const { query, limit = 10 } = args as { query: string; limit?: number };
-      const result = await apiCall('POST', '/api/contacts/search', apiToken, {
+      const result = await api('POST', '/api/contacts/search', {
         search: query,
         limit,
         page: 1,
@@ -992,7 +1024,7 @@ export async function handleMCPToolCall(
 
     case 'get_contact_details': {
       const { contactId } = args as { contactId: string };
-      const contact = await apiCall('GET', `/api/contacts/${contactId}`, apiToken);
+      const contact = await api('GET', `/api/contacts/${contactId}`);
 
       if (!contact) {
         throw new Error('Контакт не найден');
@@ -1021,7 +1053,7 @@ export async function handleMCPToolCall(
       if (sourceId) contactData.sourceId = sourceId;
       if (notes) contactData.notes = notes;
 
-      const contact = await apiCall('POST', '/api/contacts', apiToken, contactData) as {
+      const contact = await api('POST', '/api/contacts', contactData) as {
         id: string;
         name: string;
       };
@@ -1044,7 +1076,7 @@ export async function handleMCPToolCall(
       if (position !== undefined) updateData.position = position;
       if (notes !== undefined) updateData.notes = notes;
 
-      const contact = await apiCall('PATCH', `/api/contacts/${contactId}`, apiToken, updateData) as {
+      const contact = await api('PATCH', `/api/contacts/${contactId}`, updateData) as {
         id: string;
         name: string;
       };
@@ -1060,7 +1092,7 @@ export async function handleMCPToolCall(
         pipelineId?: string;
         limit?: number;
       };
-      const result = await apiCall('POST', '/api/opportunities/search', apiToken, {
+      const result = await api('POST', '/api/opportunities/search', {
         search: query,
         stageId,
         pipelineId,
@@ -1089,7 +1121,7 @@ export async function handleMCPToolCall(
 
     case 'get_opportunity_details': {
       const { opportunityId } = args as { opportunityId: string };
-      const opportunity = await apiCall('GET', `/api/opportunities/${opportunityId}`, apiToken);
+      const opportunity = await api('GET', `/api/opportunities/${opportunityId}`);
 
       if (!opportunity) {
         throw new Error('Сделка не найдена');
@@ -1100,7 +1132,7 @@ export async function handleMCPToolCall(
     case 'get_opportunities_stats': {
       const { pipelineId } = args as { pipelineId?: string };
       const queryParam = pipelineId ? `?pipelineId=${pipelineId}` : '';
-      const stats = await apiCall('GET', `/api/opportunities/stats${queryParam}`, apiToken);
+      const stats = await api('GET', `/api/opportunities/stats${queryParam}`);
 
       return { success: true, stats };
     }
@@ -1124,7 +1156,7 @@ export async function handleMCPToolCall(
       if (expectedCloseDate) oppData.expectedCloseDate = expectedCloseDate;
       if (notes) oppData.notes = notes;
 
-      const opportunity = await apiCall('POST', '/api/opportunities', apiToken, oppData) as {
+      const opportunity = await api('POST', '/api/opportunities', oppData) as {
         id: string;
         name: string;
         amount?: number;
@@ -1148,7 +1180,7 @@ export async function handleMCPToolCall(
       if (expectedCloseDate !== undefined) updateData.expectedCloseDate = expectedCloseDate;
       if (notes !== undefined) updateData.notes = notes;
 
-      const opportunity = await apiCall('PATCH', `/api/opportunities/${opportunityId}`, apiToken, updateData) as {
+      const opportunity = await api('PATCH', `/api/opportunities/${opportunityId}`, updateData) as {
         id: string;
         name: string;
         amount?: number;
@@ -1159,7 +1191,7 @@ export async function handleMCPToolCall(
 
     case 'update_opportunity_stage': {
       const { opportunityId, stageId } = args as { opportunityId: string; stageId: string };
-      const opportunity = await apiCall('PATCH', `/api/opportunities/${opportunityId}`, apiToken, {
+      const opportunity = await api('PATCH', `/api/opportunities/${opportunityId}`, {
         stageId,
       }) as { id: string; name: string; stage?: { name: string } } | null;
 
@@ -1176,7 +1208,7 @@ export async function handleMCPToolCall(
     case 'get_tasks_overview': {
       const { status, limit = 10 } = args as { status?: string; limit?: number };
 
-      const counts = await apiCall('POST', '/api/tasks/counts', apiToken, {}) as {
+      const counts = await api('POST', '/api/tasks/counts', {}) as {
         open: number;
         in_progress: number;
         completed: number;
@@ -1184,7 +1216,7 @@ export async function handleMCPToolCall(
         overdue: number;
       };
 
-      const result = await apiCall('POST', '/api/tasks/search', apiToken, {
+      const result = await api('POST', '/api/tasks/search', {
         status,
         limit,
         page: 1,
@@ -1211,7 +1243,7 @@ export async function handleMCPToolCall(
 
     case 'get_task_details': {
       const { taskId } = args as { taskId: string };
-      const task = await apiCall('GET', `/api/tasks/${taskId}`, apiToken);
+      const task = await api('GET', `/api/tasks/${taskId}`);
 
       if (!task) {
         throw new Error('Задача не найдена');
@@ -1235,7 +1267,7 @@ export async function handleMCPToolCall(
           ? { entityType: 'opportunity' as const, entityId: opportunityId }
           : undefined;
 
-      const task = await apiCall('POST', '/api/tasks', apiToken, {
+      const task = await api('POST', '/api/tasks', {
         title,
         description,
         dueDate,
@@ -1261,7 +1293,7 @@ export async function handleMCPToolCall(
       if (dueDate !== undefined) updateData.dueDate = dueDate;
       if (priorityId !== undefined) updateData.priorityId = priorityId;
 
-      const task = await apiCall('PATCH', `/api/tasks/${taskId}`, apiToken, updateData) as {
+      const task = await api('PATCH', `/api/tasks/${taskId}`, updateData) as {
         id: string;
         title: string;
         status: string;
@@ -1272,7 +1304,7 @@ export async function handleMCPToolCall(
 
     case 'update_task_status': {
       const { taskId, status } = args as { taskId: string; status: string };
-      const task = await apiCall('PATCH', `/api/tasks/${taskId}`, apiToken, {
+      const task = await api('PATCH', `/api/tasks/${taskId}`, {
         status,
       }) as { id: string; title: string; status: string } | null;
 
@@ -1284,7 +1316,7 @@ export async function handleMCPToolCall(
 
     case 'delete_task': {
       const { taskId } = args as { taskId: string };
-      await apiCall('DELETE', `/api/tasks/${taskId}`, apiToken);
+      await api('DELETE', `/api/tasks/${taskId}`);
 
       return { success: true, message: 'Задача удалена' };
     }
@@ -1298,7 +1330,7 @@ export async function handleMCPToolCall(
         limit?: number;
       };
 
-      const result = await apiCall('POST', '/api/interactions/search', apiToken, {
+      const result = await api('POST', '/api/interactions/search', {
         contactId,
         channelId,
         direction,
@@ -1337,7 +1369,7 @@ export async function handleMCPToolCall(
         direction: 'inbound' | 'outbound';
       };
 
-      const interaction = await apiCall('POST', '/api/interactions', apiToken, {
+      const interaction = await api('POST', '/api/interactions', {
         contactId,
         channelId,
         subject,
@@ -1350,7 +1382,7 @@ export async function handleMCPToolCall(
 
     // ==================== ВОРОНКИ ====================
     case 'get_pipelines': {
-      const result = await apiCall('GET', '/api/pipelines', apiToken) as {
+      const result = await api('GET', '/api/pipelines') as {
         pipelines: Array<{
           id: string;
           name: string;
@@ -1374,7 +1406,7 @@ export async function handleMCPToolCall(
 
     case 'get_pipeline_stages': {
       const { pipelineId } = args as { pipelineId: string };
-      const result = await apiCall('GET', `/api/pipelines/${pipelineId}/stages`, apiToken) as {
+      const result = await api('GET', `/api/pipelines/${pipelineId}/stages`) as {
         stages: Array<{
           id: string;
           name: string;
@@ -1399,7 +1431,7 @@ export async function handleMCPToolCall(
     case 'get_pipeline_analytics': {
       const { pipelineId } = args as { pipelineId?: string };
 
-      const pipelinesResult = await apiCall('GET', '/api/pipelines', apiToken) as {
+      const pipelinesResult = await api('GET', '/api/pipelines') as {
         pipelines: Array<{ id: string; name: string; isDefault?: boolean }>;
       };
       const pipelines = pipelinesResult.pipelines;
@@ -1412,7 +1444,7 @@ export async function handleMCPToolCall(
         throw new Error('Воронка не найдена');
       }
 
-      const analytics = await apiCall('GET', `/api/pipelines/${targetPipeline.id}/analytics`, apiToken) as {
+      const analytics = await api('GET', `/api/pipelines/${targetPipeline.id}/analytics`) as {
         pipeline: { id: string; name: string };
         stages: Array<{ id: string; name: string; count: number; totalAmount: number; avgAmount: number }>;
         totalOpportunities: number;
@@ -1428,7 +1460,7 @@ export async function handleMCPToolCall(
 
     // ==================== СПРАВОЧНИКИ ====================
     case 'get_dictionaries': {
-      const result = await apiCall('POST', '/api/dictionaries/search', apiToken, {}) as {
+      const result = await api('POST', '/api/dictionaries/search', {}) as {
         dictionaries: Array<{
           code: string;
           name: string;
@@ -1450,7 +1482,7 @@ export async function handleMCPToolCall(
 
     case 'get_dictionary_items': {
       const { dictionaryCode } = args as { dictionaryCode: string };
-      const result = await apiCall('GET', `/api/dictionaries/${dictionaryCode}/items`, apiToken) as {
+      const result = await api('GET', `/api/dictionaries/${dictionaryCode}/items`) as {
         items: Array<{
           id: string;
           code: string;
@@ -1475,7 +1507,7 @@ export async function handleMCPToolCall(
 
     // ==================== КАНАЛЫ ====================
     case 'get_channels': {
-      const result = await apiCall('POST', '/api/channels/search', apiToken, {}) as {
+      const result = await api('POST', '/api/channels/search', {}) as {
         channels: Array<{
           id: string;
           code: string;
@@ -1500,20 +1532,20 @@ export async function handleMCPToolCall(
     // ==================== КОНТАКТЫ (дополнительно) ====================
     case 'delete_contact': {
       const { contactId } = args as { contactId: string };
-      await apiCall('DELETE', `/api/contacts/${contactId}`, apiToken);
+      await api('DELETE', `/api/contacts/${contactId}`);
       return { success: true, message: 'Контакт удалён' };
     }
 
     // ==================== СДЕЛКИ (дополнительно) ====================
     case 'delete_opportunity': {
       const { opportunityId } = args as { opportunityId: string };
-      await apiCall('DELETE', `/api/opportunities/${opportunityId}`, apiToken);
+      await api('DELETE', `/api/opportunities/${opportunityId}`);
       return { success: true, message: 'Сделка удалена' };
     }
 
     case 'archive_opportunity': {
       const { opportunityId, archived = true } = args as { opportunityId: string; archived?: boolean };
-      const opportunity = await apiCall('PATCH', `/api/opportunities/${opportunityId}`, apiToken, {
+      const opportunity = await api('PATCH', `/api/opportunities/${opportunityId}`, {
         archived,
       }) as { id: string; name: string; archived: boolean };
 
@@ -1527,7 +1559,7 @@ export async function handleMCPToolCall(
     // ==================== ВЗАИМОДЕЙСТВИЯ (дополнительно) ====================
     case 'get_interaction_details': {
       const { interactionId } = args as { interactionId: string };
-      const interaction = await apiCall('GET', `/api/interactions/${interactionId}`, apiToken);
+      const interaction = await api('GET', `/api/interactions/${interactionId}`);
 
       if (!interaction) {
         throw new Error('Взаимодействие не найдено');
@@ -1548,7 +1580,7 @@ export async function handleMCPToolCall(
       if (content !== undefined) updateData.content = content;
       if (status !== undefined) updateData.status = status;
 
-      const interaction = await apiCall('PATCH', `/api/interactions/${interactionId}`, apiToken, updateData) as {
+      const interaction = await api('PATCH', `/api/interactions/${interactionId}`, updateData) as {
         id: string;
         subject?: string;
         status: string;
@@ -1559,13 +1591,13 @@ export async function handleMCPToolCall(
 
     case 'delete_interaction': {
       const { interactionId } = args as { interactionId: string };
-      await apiCall('DELETE', `/api/interactions/${interactionId}`, apiToken);
+      await api('DELETE', `/api/interactions/${interactionId}`);
       return { success: true, message: 'Взаимодействие удалено' };
     }
 
     case 'get_interaction_stats': {
       const { contactId } = args as { contactId: string };
-      const stats = await apiCall('GET', `/api/interactions/stats/${contactId}`, apiToken) as {
+      const stats = await api('GET', `/api/interactions/stats/${contactId}`) as {
         total: number;
         byChannel: Record<string, number>;
         byDirection: Record<string, number>;
@@ -1583,7 +1615,7 @@ export async function handleMCPToolCall(
         limit?: number;
       };
 
-      const result = await apiCall('POST', '/api/users/search', apiToken, {
+      const result = await api('POST', '/api/users/search', {
         search: query,
         role,
         isActive,
@@ -1612,7 +1644,7 @@ export async function handleMCPToolCall(
 
     case 'get_user_details': {
       const { userId } = args as { userId: string };
-      const user = await apiCall('GET', `/api/users/${userId}`, apiToken);
+      const user = await api('GET', `/api/users/${userId}`);
 
       if (!user) {
         throw new Error('Пользователь не найден');
@@ -1629,7 +1661,7 @@ export async function handleMCPToolCall(
       };
 
       // Сначала проверяем, не является ли пользователь админом
-      const existingUser = await apiCall('GET', `/api/users/${userId}`, apiToken) as {
+      const existingUser = await api('GET', `/api/users/${userId}`) as {
         id: string;
         roles: string[];
       };
@@ -1649,7 +1681,7 @@ export async function handleMCPToolCall(
       if (email) updateData.email = email;
       if (image !== undefined) updateData.image = image;
 
-      const user = await apiCall('PATCH', `/api/users/${userId}`, apiToken, updateData) as {
+      const user = await api('PATCH', `/api/users/${userId}`, updateData) as {
         id: string;
         name: string;
         email: string;
@@ -1667,7 +1699,7 @@ export async function handleMCPToolCall(
         limit?: number;
       };
 
-      const result = await apiCall('POST', '/api/projects/search', apiToken, {
+      const result = await api('POST', '/api/projects/search', {
         search: query,
         status,
         ownerId,
@@ -1698,7 +1730,7 @@ export async function handleMCPToolCall(
 
     case 'get_project_details': {
       const { projectId } = args as { projectId: string };
-      const project = await apiCall('GET', `/api/projects/${projectId}`, apiToken);
+      const project = await api('GET', `/api/projects/${projectId}`);
 
       if (!project) {
         throw new Error('Проект не найден');
@@ -1721,7 +1753,7 @@ export async function handleMCPToolCall(
       if (deadline) projectData.deadline = deadline;
       if (ownerId) projectData.ownerId = ownerId;
 
-      const project = await apiCall('POST', '/api/projects', apiToken, projectData) as {
+      const project = await api('POST', '/api/projects', projectData) as {
         id: string;
         name: string;
         status: string;
@@ -1745,7 +1777,7 @@ export async function handleMCPToolCall(
       if (status) updateData.status = status;
       if (deadline !== undefined) updateData.deadline = deadline;
 
-      const project = await apiCall('PATCH', `/api/projects/${projectId}`, apiToken, updateData) as {
+      const project = await api('PATCH', `/api/projects/${projectId}`, updateData) as {
         id: string;
         name: string;
         status: string;
@@ -1756,14 +1788,14 @@ export async function handleMCPToolCall(
 
     case 'delete_project': {
       const { projectId } = args as { projectId: string };
-      await apiCall('DELETE', `/api/projects/${projectId}`, apiToken);
+      await api('DELETE', `/api/projects/${projectId}`);
       return { success: true, message: 'Проект удалён' };
     }
 
     // ==================== ДОПОЛНИТЕЛЬНЫЕ ИНСТРУМЕНТЫ ====================
     case 'get_tasks_by_contact': {
       const { contactId } = args as { contactId: string };
-      const result = await apiCall('GET', `/api/contacts/${contactId}/tasks`, apiToken) as {
+      const result = await api('GET', `/api/contacts/${contactId}/tasks`) as {
         tasks: Array<{
           id: string;
           title: string;
@@ -1791,7 +1823,7 @@ export async function handleMCPToolCall(
 
     case 'get_tasks_by_project': {
       const { projectId } = args as { projectId: string };
-      const result = await apiCall('GET', `/api/projects/${projectId}/tasks`, apiToken) as {
+      const result = await api('GET', `/api/projects/${projectId}/tasks`) as {
         tasks: Array<{
           id: string;
           title: string;
@@ -1818,7 +1850,7 @@ export async function handleMCPToolCall(
     }
 
     case 'get_default_pipeline': {
-      const pipeline = await apiCall('GET', '/api/pipelines/default', apiToken) as {
+      const pipeline = await api('GET', '/api/pipelines/default') as {
         id: string;
         name: string;
         code: string;
@@ -1854,7 +1886,7 @@ export async function handleMCPToolCall(
 
     case 'get_pipeline_by_code': {
       const { code } = args as { code: string };
-      const pipeline = await apiCall('GET', `/api/pipelines/code/${code}`, apiToken) as {
+      const pipeline = await api('GET', `/api/pipelines/code/${code}`) as {
         id: string;
         name: string;
         code: string;
@@ -1890,7 +1922,7 @@ export async function handleMCPToolCall(
 
     case 'get_initial_stage': {
       const { pipelineId } = args as { pipelineId: string };
-      const stage = await apiCall('GET', `/api/pipelines/${pipelineId}/initial-stage`, apiToken) as {
+      const stage = await api('GET', `/api/pipelines/${pipelineId}/initial-stage`) as {
         id: string;
         name: string;
         color: string;
@@ -1902,7 +1934,7 @@ export async function handleMCPToolCall(
 
     case 'get_interactions_by_contact': {
       const { contactId, limit = 50 } = args as { contactId: string; limit?: number };
-      const result = await apiCall('GET', `/api/contacts/${contactId}/interactions?limit=${limit}`, apiToken) as {
+      const result = await api('GET', `/api/contacts/${contactId}/interactions?limit=${limit}`) as {
         interactions: Array<{
           id: string;
           direction: string;
@@ -1932,7 +1964,7 @@ export async function handleMCPToolCall(
 
     case 'get_dictionary_item_by_code': {
       const { dictionaryCode, itemCode } = args as { dictionaryCode: string; itemCode: string };
-      const item = await apiCall('GET', `/api/dictionaries/${dictionaryCode}/items/by-code/${itemCode}`, apiToken) as {
+      const item = await api('GET', `/api/dictionaries/${dictionaryCode}/items/by-code/${itemCode}`) as {
         id: string;
         code: string;
         name: string;
