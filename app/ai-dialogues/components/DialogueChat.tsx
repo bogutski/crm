@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useChat } from '@ai-sdk/react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 
 interface DialogueChatProps {
@@ -9,84 +8,123 @@ interface DialogueChatProps {
   onDialogueUpdate: (dialogueId: string) => void;
 }
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export function DialogueChat({ dialogueId, onDialogueUpdate }: DialogueChatProps) {
   const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const { messages, sendMessage, status, setMessages } = useChat({
-    api: '/api/chat',
-    body: { dialogueId },
-    onResponse: (response) => {
-      const newDialogueId = response.headers.get('X-Dialogue-ID');
-      if (newDialogueId) {
-        onDialogueUpdate(newDialogueId);
-      }
-    },
-  });
-
-  const isLoading = status === 'submitted' || status === 'streaming';
-
-  // Загрузка истории при выборе диалога
-  useEffect(() => {
-    if (dialogueId) {
-      loadDialogueHistory(dialogueId);
-    } else {
-      setMessages([]);
-    }
-  }, [dialogueId, setMessages]);
 
   // Автоскролл к последнему сообщению
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadDialogueHistory = async (id: string) => {
+  // Загрузка истории при выборе диалога
+  const loadDialogueHistory = useCallback(async (id: string) => {
     try {
-      console.log('[DialogueChat] Loading dialogue:', id);
       const response = await fetch(`/api/dialogues/${id}`, {
         credentials: 'include',
       });
 
-      console.log('[DialogueChat] Response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('[DialogueChat] Response data:', data);
         const dialogue = data.dialogue;
 
         if (!dialogue || !dialogue.messages) {
-          console.error('[DialogueChat] Invalid dialogue data:', dialogue);
           return;
         }
 
-        console.log('[DialogueChat] Messages count:', dialogue.messages.length);
+        const historyMessages: ChatMessage[] = dialogue.messages.map((msg: { _id?: string; role: 'user' | 'assistant'; content: string }) => ({
+          id: msg._id || Math.random().toString(),
+          role: msg.role,
+          content: msg.content,
+        }));
 
-        // Конвертируем историю в формат для useChat
-        const historyMessages = dialogue.messages.map((msg: any, index: number) => {
-          console.log('[DialogueChat] Message', index, ':', msg);
-          return {
-            id: msg._id || Math.random().toString(),
-            role: msg.role,
-            content: msg.content,
-          };
-        });
-
-        console.log('[DialogueChat] Setting messages:', historyMessages);
         setMessages(historyMessages);
-      } else {
-        console.error('[DialogueChat] Failed to load dialogue:', response.status);
       }
     } catch (error) {
       console.error('[DialogueChat] Error loading dialogue history:', error);
     }
-  };
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (dialogueId) {
+      loadDialogueHistory(dialogueId);
+    } else {
+      setMessages([]);
+    }
+  }, [dialogueId, loadDialogueHistory]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    sendMessage({ text: input });
+    const userMessage: ChatMessage = {
+      id: Math.random().toString(),
+      role: 'user',
+      content: input.trim(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          dialogueId,
+        }),
+        credentials: 'include',
+      });
+
+      const newDialogueId = response.headers.get('X-Dialogue-ID');
+      if (newDialogueId) {
+        onDialogueUpdate(newDialogueId);
+      }
+
+      if (response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantContent = '';
+        const assistantId = Math.random().toString();
+
+        // Add empty assistant message
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, role: 'assistant', content: '' },
+        ]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          assistantContent += chunk;
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: assistantContent } : m
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[DialogueChat] Error sending message:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Empty state
@@ -152,7 +190,7 @@ export function DialogueChat({ dialogueId, onDialogueUpdate }: DialogueChatProps
             </div>
           ))}
 
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
             <div className="flex justify-start">
               <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-4 py-3">
                 <div className="flex gap-1">
