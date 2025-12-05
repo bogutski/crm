@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createTaskSchema.parse(body);
 
-    const ownerId = authResult.type === 'session' ? authResult.userId : undefined;
+    // Get ownerId from session, internal auth, or undefined for API token
+    const ownerId = authResult.userId;
 
     const task = await createTask({
       ...data,
