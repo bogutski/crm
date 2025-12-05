@@ -6,13 +6,13 @@
 import { streamText, stepCountIs } from 'ai';
 import { getAIModel } from '../lib/ai/service';
 import { getAITools } from '../lib/ai/tools';
-import { connectDB } from '../lib/db';
+import { connectToDatabase } from '../lib/mongodb';
 
 async function testAIChat() {
   console.log('=== Testing AI Chat ===\n');
 
   // Connect to database to read settings
-  await connectDB();
+  await connectToDatabase();
 
   // Get model from system settings
   console.log('Loading AI model from settings...');
@@ -56,11 +56,11 @@ async function testAIChat() {
           textContent += delta;
         }
       } else if (part.type === 'tool-call') {
-        console.log('\n[Tool Call]', part.toolName, JSON.stringify(part.args));
+        console.log('\n[Tool Call]', part.toolName, JSON.stringify((part as any).args || (part as any).input));
       } else if (part.type === 'tool-result') {
         const resultStr = JSON.stringify((part as any).result || part);
         console.log('[Tool Result]', resultStr.substring(0, 300));
-      } else if (part.type === 'step-finish' || part.type === 'finish-step') {
+      } else if ((part as any).type === 'step-finish' || (part as any).type === 'finish-step') {
         console.log('\n[Step Finish]', JSON.stringify(part));
       } else if (part.type === 'finish') {
         console.log('\n[Finish]', {
