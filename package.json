@@ -15,6 +15,7 @@
     "seed": "npx tsx scripts/seed.ts",
     "seed:extreme": "npx tsx scripts/seed-extreme.ts",
     "seed:unified": "npx tsx scripts/seed-unified.ts",
+    "seed:10k": "npx tsx scripts/seed-unified.ts --count=10000",
     "db:reset": "npx tsx scripts/db-reset.ts",
     "openapi:generate": "npx tsx scripts/generate-openapi.ts"
   },

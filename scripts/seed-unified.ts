@@ -526,16 +526,17 @@ const MESSAGE_TEMPLATES = {
 
 function getMessageTemplate(direction: 'inbound' | 'outbound', contactName: string): string {
   const firstName = contactName.split(' ')[0];
-  const templates = MESSAGE_TEMPLATES[direction];
   const rand = Math.random();
 
   let template: string;
   if (direction === 'inbound') {
+    const templates = MESSAGE_TEMPLATES.inbound;
     if (rand < 0.25) template = randomElement(templates.inquiry);
     else if (rand < 0.5) template = randomElement(templates.followUp);
     else if (rand < 0.65) template = randomElement(templates.support);
     else template = randomElement(templates.brief);
   } else {
+    const templates = MESSAGE_TEMPLATES.outbound;
     if (rand < 0.3) template = randomElement(templates.initial);
     else if (rand < 0.6) template = randomElement(templates.followUp);
     else if (rand < 0.7) template = randomElement(templates.closing);
