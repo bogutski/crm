@@ -15,6 +15,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow API requests with Bearer token (API token auth)
+  const authHeader = request.headers.get('authorization');
+  if (pathname.startsWith('/api/') && authHeader?.startsWith('Bearer ')) {
+    return NextResponse.next();
+  }
+
   // Check for session cookie (authjs.session-token or __Secure-authjs.session-token)
   const sessionToken =
     request.cookies.get('authjs.session-token')?.value ||

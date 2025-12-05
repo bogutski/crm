@@ -34,11 +34,15 @@ export async function apiAuth(request: NextRequest): Promise<ApiAuthResult | nul
           apiToken,
         };
       }
+      // API token provided but invalid - don't fall through to session check
       return null;
     }
+
+    // Unknown Bearer token format - don't fall through to session check
+    return null;
   }
 
-  // Проверяем сессию
+  // Проверяем сессию (only when no Bearer token is provided)
   const session = await auth();
   if (session?.user?.id) {
     return {
