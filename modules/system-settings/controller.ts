@@ -45,6 +45,16 @@ function toSystemSettingsResponse(settings: ISystemSettings): SystemSettingsResp
                 }
               : undefined,
           },
+          tools: settings.ai.tools
+            ? {
+                enabled: settings.ai.tools.enabled,
+              }
+            : undefined,
+          mcpTools: settings.ai.mcpTools
+            ? {
+                enabled: settings.ai.mcpTools.enabled,
+              }
+            : undefined,
         }
       : undefined,
     updatedAt: settings.updatedAt,
