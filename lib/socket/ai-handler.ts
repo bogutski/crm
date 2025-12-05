@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, stepCountIs } from 'ai';
 import { getAIModel } from '@/lib/ai/service';
 import { getSystemSettingsInternal } from '@/modules/system-settings/controller';
 import {
@@ -22,9 +22,13 @@ interface AIMessageParams {
 export async function handleAIMessage(params: AIMessageParams) {
   const { userId, dialogueId, message } = params;
 
+  console.log('[AI Handler] handleAIMessage called:', { userId, dialogueId, message });
+
   try {
     // Получаем системные настройки
+    console.log('[AI Handler] Getting system settings...');
     const settings = await getSystemSettingsInternal();
+    console.log('[AI Handler] Settings loaded, provider:', settings.ai?.activeProvider);
     const provider = settings.ai?.activeProvider;
     const modelName = provider ? settings.ai?.providers[provider]?.model : undefined;
 
@@ -37,7 +41,9 @@ export async function handleAIMessage(params: AIMessageParams) {
     }
 
     // Получаем модель
+    console.log('[AI Handler] Getting AI model...');
     const model = await getAIModel();
+    console.log('[AI Handler] Model loaded');
 
     // Получаем или создаём диалог
     let dialogue;
@@ -97,40 +103,90 @@ export async function handleAIMessage(params: AIMessageParams) {
 
     // Get enabled tools from settings
     const enabledTools = settings.ai?.tools?.enabled;
+    console.log('[AI Handler] Getting tools, enabled:', enabledTools);
     const tools = getAITools({ userId, enabledTools });
+    console.log('[AI Handler] Tools loaded, count:', Object.keys(tools).length);
 
     // Стримим ответ
+    console.log('[AI Handler] Starting streamText...');
     const result = streamText({
       model,
       messages: allMessages,
       tools,
       system: `Ты - AI ассистент для CRM системы. Ты помогаешь пользователям с аналитикой и управлением данными.
 
-У тебя есть доступ к следующим инструментам для работы с CRM:
+У тебя есть доступ к инструментам для работы с CRM:
 
-АНАЛИТИКА (только чтение):
-- search_contacts: Поиск контактов по имени, email, телефону или компании
-- get_opportunities_stats: Статистика по сделкам (суммы, количество по стадиям)
-- get_tasks_overview: Обзор задач (открытые, просроченные, по статусам)
-- get_pipeline_analytics: Аналитика воронки продаж (конверсия, средний чек)
-- search_opportunities: Поиск сделок по различным критериям
-- get_contact_details: Подробная информация о контакте с историей
+📇 КОНТАКТЫ:
+- search_contacts: Поиск контактов
+- get_contact_details: Подробная информация о контакте
+- create_contact: Создание нового контакта
+- update_contact: Обновление данных контакта
+- delete_contact: Удаление контакта
 
-ДЕЙСТВИЯ (изменение данных):
+💼 СДЕЛКИ:
+- search_opportunities: Поиск сделок
+- get_opportunity_details: Подробная информация о сделке
+- get_opportunities_stats: Статистика по сделкам
+- create_opportunity: Создание новой сделки
+- update_opportunity: Обновление данных сделки
+- update_opportunity_stage: Перемещение сделки по воронке
+- archive_opportunity: Архивация сделки
+- delete_opportunity: Удаление сделки
+
+✅ ЗАДАЧИ:
+- get_tasks_overview: Обзор задач (статистика и список)
+- get_task_details: Подробная информация о задаче
 - create_task: Создание новой задачи
-- update_opportunity_stage: Перемещение сделки на другую стадию
-- create_interaction: Запись взаимодействия с контактом (звонок, письмо)
+- update_task: Обновление данных задачи
 - update_task_status: Изменение статуса задачи
+- delete_task: Удаление задачи
+- get_tasks_by_contact: Задачи привязанные к контакту
+- get_tasks_by_project: Задачи привязанные к проекту
+
+📞 ВЗАИМОДЕЙСТВИЯ:
+- search_interactions: Поиск взаимодействий
+- get_interaction_details: Подробная информация о взаимодействии
+- get_interactions_by_contact: Все взаимодействия с контактом
+- get_interaction_stats: Статистика взаимодействий
+- create_interaction: Запись нового взаимодействия
+- update_interaction: Обновление взаимодействия
+- delete_interaction: Удаление взаимодействия
+
+📊 ВОРОНКИ:
+- get_pipelines: Список всех воронок
+- get_pipeline_stages: Стадии воронки
+- get_pipeline_analytics: Аналитика воронки
+- get_default_pipeline: Воронка по умолчанию
+- get_initial_stage: Начальная стадия воронки
+
+📁 ПРОЕКТЫ:
+- search_projects: Поиск проектов
+- get_project_details: Подробная информация о проекте
+- create_project: Создание проекта
+- update_project: Обновление проекта
+- delete_project: Удаление проекта
+
+👥 ПОЛЬЗОВАТЕЛИ:
+- search_users: Поиск пользователей
+- get_user_details: Информация о пользователе
+
+📚 СПРАВОЧНИКИ:
+- get_dictionaries: Список справочников
+- get_dictionary_items: Элементы справочника
+- get_channels: Список каналов коммуникации
 
 ВАЖНО:
 - Используй инструменты для получения актуальных данных из CRM
-- При выполнении действий (создание, изменение) сообщай о результате
+- При выполнении действий (создание, изменение, удаление) сообщай о результате
 - Форматируй ответы наглядно, используя списки и структуру
 - Отвечай на русском языке, если пользователь пишет на русском
 - Будь кратким и полезным`,
       temperature: 0.7,
+      stopWhen: stepCountIs(5), // Allow AI to make multiple tool calls and continue generating
       abortSignal: abortController.signal,
       onChunk: ({ chunk }) => {
+        console.log('[AI Handler] onChunk:', chunk.type);
         if (chunk.type === 'text-delta') {
           const text = (chunk as any).text || (chunk as any).textDelta || '';
           fullResponse += text;
@@ -138,9 +194,24 @@ export async function handleAIMessage(params: AIMessageParams) {
             dialogueId: currentDialogueId,
             chunk: text,
           });
+        } else if (chunk.type === 'tool-call') {
+          console.log('[AI Handler] Tool call:', (chunk as any).toolName);
+        } else if (chunk.type === 'tool-result') {
+          const resultStr = JSON.stringify((chunk as any).result || (chunk as any).output || chunk);
+          console.log('[AI Handler] Tool result received:', resultStr.substring(0, 200));
         }
       },
+      onStepFinish: (step) => {
+        console.log('[AI Handler] Step finished:', {
+          stepType: step.stepType,
+          text: step.text?.substring(0, 100),
+          toolCalls: step.toolCalls?.length,
+          toolResults: step.toolResults?.length,
+          finishReason: step.finishReason,
+        });
+      },
       onFinish: async (event) => {
+        console.log('[AI Handler] onFinish called, text length:', event.text?.length, 'steps:', (event as any).steps?.length, 'finishReason:', (event as any).finishReason);
         // Удаляем из активных стримов
         activeStreams.delete(currentDialogueId);
 
@@ -174,7 +245,20 @@ export async function handleAIMessage(params: AIMessageParams) {
     });
 
     // Ждём завершения стрима
-    await result.text;
+    console.log('[AI Handler] Waiting for stream to complete...');
+    try {
+      // Consume the stream to ensure it completes
+      for await (const chunk of result.textStream) {
+        // Stream chunks are handled in onChunk
+        if (chunk) {
+          console.log('[AI Handler] textStream chunk:', chunk.substring(0, 50));
+        }
+      }
+      console.log('[AI Handler] Stream completed successfully');
+    } catch (streamError) {
+      console.error('[AI Handler] Stream error:', streamError);
+      throw streamError;
+    }
 
   } catch (error) {
     console.error('[AI Handler] Error:', error);
