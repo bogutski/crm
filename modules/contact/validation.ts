@@ -18,8 +18,8 @@ export const emailSchema = z.object({
 
 export const phoneSchema = z.object({
   e164: z.string().min(1, 'Phone number is required').describe('Номер в формате E.164 (+71234567890)'),
-  international: z.string().min(1, 'International format is required').describe('Международный формат (+7 123 456-78-90)'),
-  country: z.string().length(2, 'Country code must be 2 characters').describe('Код страны ISO 3166-1 alpha-2'),
+  international: z.string().optional().describe('Международный формат (+7 123 456-78-90) - заполняется автоматически'),
+  country: z.string().optional().describe('Код страны ISO 3166-1 alpha-2 - определяется автоматически'),
   type: phoneTypeSchema.optional().default('UNKNOWN'),
   isPrimary: z.boolean().optional().default(false).describe('Основной номер'),
   isVerified: z.boolean().optional().default(false).describe('Номер подтверждён'),

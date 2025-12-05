@@ -24,6 +24,19 @@ export interface IPhone {
   lastSmsAt?: Date;
 }
 
+// Input type for API requests - international/country are auto-filled by normalizePhone()
+export interface IPhoneInput {
+  e164: string;
+  international?: string;
+  country?: string;
+  type?: PhoneType;
+  isPrimary?: boolean;
+  isVerified?: boolean;
+  isSubscribed?: boolean;
+  unsubscribedAt?: Date;
+  lastSmsAt?: Date;
+}
+
 export interface IAddress {
   line1?: string;
   line2?: string;
