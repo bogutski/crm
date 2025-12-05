@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Pencil, ChevronLeft, ChevronRight, Trash2, ScanEye } from 'lucide-react';
+import { Pencil, ChevronLeft, ChevronRight, Trash2, ScanEye, Settings } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { ContactForm } from './ContactForm';
@@ -89,6 +89,7 @@ export function ContactsTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewContactId, setPreviewContactId] = useState<string | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Get current values from URL or use initial values
   const currentPage = parseInt(searchParams.get('page') || String(initialPage), 10);
@@ -335,7 +336,15 @@ export function ContactsTable({
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Создан
                 </th>
-                <th className="w-12"></th>
+                <th className="w-12 px-2 text-right">
+                  <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
+                    title="Настройки таблицы"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody className={loading ? 'opacity-50' : ''}>
@@ -410,9 +419,13 @@ export function ContactsTable({
                   </td>
                   <td className="px-4 py-1.5">
                     {contact.owner ? (
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400" title={contact.owner.email}>
+                      <Link
+                        href={`/users/${contact.owner.id}`}
+                        className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                        title={contact.owner.email}
+                      >
                         {contact.owner.name}
-                      </span>
+                      </Link>
                     ) : (
                       <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
                     )}
@@ -543,6 +556,20 @@ export function ContactsTable({
         onClose={() => setPreviewContactId(null)}
         onDeleted={() => fetchContacts(currentPage, currentSearch, currentOwnerId, currentContactType, currentSource)}
       />
+
+      {/* Table Settings Panel */}
+      <SlideOver
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        title="Настройки таблицы"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Здесь будут настройки отображения таблицы контактов.
+          </p>
+        </div>
+      </SlideOver>
     </>
   );
 }
