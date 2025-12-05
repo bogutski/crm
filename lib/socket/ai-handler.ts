@@ -9,7 +9,7 @@ import {
 } from '@/modules/ai-dialogue';
 import { emitToUser } from './handlers';
 import { getAITools } from '@/lib/ai/tools';
-import { generateSystemPrompt } from '@/lib/ai/prompts/mcp-system';
+import { generateSystemPrompt, CurrencySettings } from '@/lib/ai/prompts/mcp-system';
 import { IDialogueMessage } from '@/modules/ai-dialogue/model';
 
 // Активные стримы для возможности отмены
@@ -33,7 +33,7 @@ function buildMessagesWithToolCalls(messages: IDialogueMessage[]): CoreMessage[]
       if (msg.role === 'user') {
         result.push({
           role: 'user',
-          content: msg.content,
+          content: msg.content || '',
         });
       } else if (msg.role === 'assistant') {
         // Если есть tool calls
@@ -82,7 +82,7 @@ function buildMessagesWithToolCalls(messages: IDialogueMessage[]): CoreMessage[]
               content: msg.content,
             });
           }
-        } else {
+        } else if (msg.content) {
           // Простое текстовое сообщение без tool calls
           result.push({
             role: 'assistant',
@@ -217,8 +217,15 @@ export async function handleAIMessage(params: AIMessageParams) {
     const tools = getAITools({ userId, enabledTools });
     console.log('[AI Handler] Tools loaded, count:', Object.keys(tools).length);
 
-    // Генерируем системный промпт с учётом включённых инструментов
-    const baseSystemPrompt = generateSystemPrompt(enabledTools);
+    // Готовим настройки валюты для системного промпта
+    const currencySettings: CurrencySettings = {
+      currency: settings.currency,
+      currencySymbol: settings.currencySymbol,
+      currencyPosition: settings.currencyPosition,
+    };
+
+    // Генерируем системный промпт с учётом включённых инструментов и валюты
+    const baseSystemPrompt = generateSystemPrompt(enabledTools, currencySettings);
 
     // Добавляем пользовательский промпт если он есть
     const customPrompt = settings.ai?.systemPrompt;
@@ -316,9 +323,12 @@ export async function handleAIMessage(params: AIMessageParams) {
 
         console.log('[AI Handler] Saving message with toolCalls:', toolCalls.length);
 
+        // Используем текст от AI или пустую строку (content теперь опционален)
+        const messageContent = event.text || '';
+
         await addMessage(currentDialogueId, {
           role: 'assistant',
-          content: event.text,
+          content: messageContent,
           toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
           metadata: {
             model: modelName,

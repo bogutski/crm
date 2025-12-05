@@ -19,7 +19,7 @@ export interface IToolCall {
 export interface IDialogueMessage {
   _id?: mongoose.Types.ObjectId;
   role: MessageRole;
-  content: string;
+  content?: string;
   timestamp: Date;
   // Для tool вызовов с результатами
   toolCalls?: IToolCall[];
@@ -89,7 +89,8 @@ const DialogueMessageSchema = new Schema<IDialogueMessage>(
     },
     content: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
     },
     timestamp: {
       type: Date,
