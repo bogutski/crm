@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Pencil, Trash2, Shield, ShieldCheck, User, Plus } from 'lucide-react';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
@@ -174,9 +175,12 @@ export function UsersList() {
                         </div>
                       )}
                       <div>
-                        <div className="font-medium text-zinc-900 dark:text-zinc-50">
+                        <Link
+                          href={`/users/${user.id}`}
+                          className="font-medium text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                        >
                           {user.name}
-                        </div>
+                        </Link>
                         <div className="text-sm text-zinc-500 dark:text-zinc-400">
                           {user.email}
                         </div>
