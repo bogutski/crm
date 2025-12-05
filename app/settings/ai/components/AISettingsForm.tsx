@@ -19,6 +19,7 @@ interface SystemSettings {
       anthropic?: { enabled: boolean; model: string; hasApiKey: boolean };
       google?: { enabled: boolean; model: string; hasApiKey: boolean };
     };
+    systemPrompt?: string;
   };
 }
 
@@ -70,6 +71,9 @@ export function AISettingsForm() {
   const [settings, setSettings] = useState<SystemSettings>({});
   const [savedMessage, setSavedMessage] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('openai');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [isPromptDirty, setIsPromptDirty] = useState(false);
+  const [isPromptSaving, setIsPromptSaving] = useState(false);
 
   const {
     register,
@@ -77,7 +81,7 @@ export function AISettingsForm() {
     setValue,
     watch,
     setError,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, isSubmitting },
     reset,
   } = useForm<AIProviderConfigData>({
     resolver: zodResolver(aiProviderConfigSchema),
@@ -109,6 +113,11 @@ export function AISettingsForm() {
               setValue('model', providerConfig.model);
               setValue('enabled', providerConfig.enabled);
             }
+          }
+
+          // Загружаем системный промпт
+          if (data.ai?.systemPrompt) {
+            setSystemPrompt(data.ai.systemPrompt);
           }
         }
       } catch (error) {
@@ -194,6 +203,37 @@ export function AISettingsForm() {
     }
   };
 
+  // Сохранение системного промпта
+  const handleSaveSystemPrompt = async () => {
+    setIsPromptSaving(true);
+    try {
+      const response = await fetch('/api/system-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ai: { systemPrompt },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка сохранения');
+      }
+
+      const updatedSettings = await response.json();
+      setSettings(updatedSettings);
+      setIsPromptDirty(false);
+      setSavedMessage('Системный промпт сохранён');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (err) {
+      setSavedMessage('');
+      setError('root', {
+        message: err instanceof Error ? err.message : 'Ошибка сохранения промпта',
+      });
+    } finally {
+      setIsPromptSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -229,8 +269,9 @@ export function AISettingsForm() {
           {(['openai', 'anthropic', 'google'] as AIProvider[]).map((provider) => {
             const info = PROVIDER_INFO[provider];
             const config = settings.ai?.providers?.[provider];
-            const isProviderActive = settings.ai?.activeProvider === provider;
             const isProviderConfigured = config?.hasApiKey && config?.enabled;
+            // Показываем "Активен" только если провайдер активен И настроен (есть API ключ)
+            const isProviderActive = settings.ai?.activeProvider === provider && isProviderConfigured;
 
             return (
               <button
@@ -326,7 +367,7 @@ export function AISettingsForm() {
       </form>
 
       {/* Статус */}
-      {settings.ai?.activeProvider && (
+      {settings.ai?.activeProvider && settings.ai?.providers?.[settings.ai.activeProvider]?.hasApiKey && (
         <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mt-0.5">
@@ -347,6 +388,44 @@ export function AISettingsForm() {
           </div>
         </div>
       )}
+
+      {/* Системный промпт */}
+      <div className="space-y-4 pt-8 border-t border-zinc-200 dark:border-zinc-800">
+        <div>
+          <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+            Системный промпт
+          </h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Дополнительные инструкции для AI ассистента. Этот текст будет добавлен к базовому системному промпту.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <textarea
+            value={systemPrompt}
+            onChange={(e) => {
+              setSystemPrompt(e.target.value);
+              setIsPromptDirty(true);
+            }}
+            placeholder="Например: Отвечай кратко и по делу. Всегда используй форматирование markdown. При работе со сделками обязательно указывай сумму..."
+            rows={6}
+            className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Базовые инструкции и список доступных инструментов уже включены. Здесь можно добавить специфичные для вашей компании инструкции.
+          </p>
+        </div>
+
+        <Button
+          type="button"
+          onClick={handleSaveSystemPrompt}
+          disabled={!isPromptDirty}
+          isLoading={isPromptSaving}
+          variant={isPromptDirty ? 'primary' : 'secondary'}
+        >
+          Сохранить промпт
+        </Button>
+      </div>
     </div>
   );
 }

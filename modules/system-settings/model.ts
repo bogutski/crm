@@ -30,6 +30,7 @@ export interface IAISettings {
   };
   tools?: IAIToolsSettings; // Настройки AI инструментов
   mcpTools?: IMCPToolsSettings; // Настройки MCP инструментов
+  systemPrompt?: string; // Дополнительный системный промпт для AI ассистента
 }
 
 // Интерфейс системных настроек
@@ -115,6 +116,10 @@ const AISettingsSchema = new Schema<IAISettings>(
     mcpTools: {
       type: MCPToolsSettingsSchema,
       default: undefined,
+    },
+    systemPrompt: {
+      type: String,
+      trim: true,
     },
   },
   { _id: false }
