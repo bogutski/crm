@@ -14,7 +14,7 @@ import '@/modules/contact/model';
 import '@/modules/user/model';
 import '@/modules/pipeline/model';
 
-interface PopulatedOpportunity extends Omit<IOpportunity, 'contact' | 'ownerId' | 'priority' | 'pipelineId' | 'stageId'> {
+interface PopulatedOpportunity extends Omit<IOpportunity, 'contact' | 'ownerId' | 'priority' | 'sourceId' | 'pipelineId' | 'stageId'> {
   contact?: {
     _id: { toString(): string };
     name: string;
@@ -25,6 +25,11 @@ interface PopulatedOpportunity extends Omit<IOpportunity, 'contact' | 'ownerId' 
     email: string;
   } | null;
   priority?: {
+    _id: { toString(): string };
+    name: string;
+    properties: { color?: string };
+  } | null;
+  sourceId?: {
     _id: { toString(): string };
     name: string;
     properties: { color?: string };
@@ -70,6 +75,11 @@ function toOpportunityResponse(opp: PopulatedOpportunity): OpportunityResponse {
       name: opp.priority.name,
       color: opp.priority.properties?.color,
     } : null,
+    source: opp.sourceId ? {
+      id: opp.sourceId._id.toString(),
+      name: opp.sourceId.name,
+      color: opp.sourceId.properties?.color,
+    } : null,
     pipeline: opp.pipelineId ? {
       id: opp.pipelineId._id.toString(),
       name: opp.pipelineId.name,
@@ -107,6 +117,8 @@ export async function getOpportunities(
     maxAmount,
     closingDateFrom,
     closingDateTo,
+    createdAtFrom,
+    createdAtTo,
     page = 1,
     limit = 20,
   } = filters;
@@ -164,6 +176,16 @@ export async function getOpportunities(
     }
   }
 
+  if (createdAtFrom || createdAtTo) {
+    query.createdAt = {};
+    if (createdAtFrom) {
+      (query.createdAt as Record<string, Date>).$gte = new Date(createdAtFrom);
+    }
+    if (createdAtTo) {
+      (query.createdAt as Record<string, Date>).$lte = new Date(createdAtTo);
+    }
+  }
+
   const skip = (page - 1) * limit;
 
   const [opportunities, total, aggregation] = await Promise.all([
@@ -171,6 +193,7 @@ export async function getOpportunities(
       .populate('contact', 'name')
       .populate('ownerId', 'name email')
       .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
       .populate('pipelineId', 'name code')
       .populate('stageId', 'name color order probability isInitial isFinal isWon')
       .sort({ createdAt: -1 })
@@ -202,6 +225,7 @@ export async function getOpportunityById(id: string): Promise<OpportunityRespons
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .lean();
@@ -227,6 +251,7 @@ export async function createOpportunity(
     contact: data.contactId,
     ownerId: data.ownerId,
     priority: data.priorityId,
+    sourceId: data.sourceId,
     pipelineId: data.pipelineId,
     stageId: data.stageId,
   });
@@ -236,6 +261,7 @@ export async function createOpportunity(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .lean();
@@ -261,6 +287,7 @@ export async function updateOpportunity(
   if (data.contactId !== undefined) updateData.contact = data.contactId;
   if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
   if (data.priorityId !== undefined) updateData.priority = data.priorityId;
+  if (data.sourceId !== undefined) updateData.sourceId = data.sourceId;
   if (data.pipelineId !== undefined) updateData.pipelineId = data.pipelineId;
   if (data.stageId !== undefined) updateData.stageId = data.stageId;
 
@@ -268,6 +295,7 @@ export async function updateOpportunity(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .lean();
@@ -298,6 +326,7 @@ export async function archiveOpportunity(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .lean();
@@ -316,6 +345,7 @@ export async function getOpportunitiesByContact(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .sort({ createdAt: -1 })
@@ -333,6 +363,7 @@ export async function getOpportunitiesByOwner(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .sort({ createdAt: -1 })
@@ -350,6 +381,7 @@ export async function getOpportunitiesByPipeline(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .sort({ createdAt: -1 })
@@ -367,6 +399,7 @@ export async function getOpportunitiesByStage(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .sort({ createdAt: -1 })
@@ -395,6 +428,7 @@ export async function moveOpportunityToStage(
     .populate('contact', 'name')
     .populate('ownerId', 'name email')
     .populate('priority', 'name properties')
+      .populate('sourceId', 'name properties')
     .populate('pipelineId', 'name code')
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .lean();

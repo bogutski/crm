@@ -22,6 +22,7 @@ export interface IOpportunity extends Document {
   contact?: mongoose.Types.ObjectId;
   ownerId?: mongoose.Types.ObjectId;
   priority?: mongoose.Types.ObjectId;
+  sourceId?: mongoose.Types.ObjectId;
   pipelineId?: mongoose.Types.ObjectId;
   stageId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -80,6 +81,11 @@ const OpportunitySchema = new Schema<IOpportunity>(
       index: true,
     },
     priority: {
+      type: Schema.Types.ObjectId,
+      ref: 'DictionaryItem',
+      index: true,
+    },
+    sourceId: {
       type: Schema.Types.ObjectId,
       ref: 'DictionaryItem',
       index: true,

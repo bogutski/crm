@@ -34,6 +34,12 @@ interface Contact {
   name: string;
 }
 
+interface Source {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface Opportunity {
   id: string;
   name?: string;
@@ -43,6 +49,7 @@ interface Opportunity {
   externalId?: string;
   archived: boolean;
   priority?: Priority | null;
+  source?: Source | null;
   pipeline?: { id: string; name: string; code: string } | null;
   stage?: Stage | null;
   contact?: Contact | null;
@@ -86,6 +93,7 @@ const getDefaultValues = (opportunity?: Opportunity): OpportunityFormData => {
       archived: opportunity.archived,
       contactId: opportunity.contact?.id || '',
       priorityId: opportunity.priority?.id || '',
+      sourceId: opportunity.source?.id || '',
       pipelineId: opportunity.pipeline?.id || '',
       stageId: opportunity.stage?.id || '',
       utm: opportunity.utm || {},
@@ -101,6 +109,7 @@ const getDefaultValues = (opportunity?: Opportunity): OpportunityFormData => {
     archived: false,
     contactId: '',
     priorityId: '',
+    sourceId: '',
     pipelineId: '',
     stageId: '',
     utm: {},
@@ -114,6 +123,7 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
 
   // Словари
   const [priorities, setPriorities] = useState<DictionaryItem[]>([]);
+  const [sources, setSources] = useState<DictionaryItem[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
 
@@ -135,6 +145,7 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
   useEffect(() => {
     Promise.all([
       fetch('/api/dictionaries/opportunity_priority/items').then(r => r.ok ? r.json() : { items: [] }),
+      fetch('/api/dictionaries/opportunity_sources/items').then(r => r.ok ? r.json() : { items: [] }),
       fetch('/api/pipelines/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -145,8 +156,9 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ limit: 100 }),
       }).then(r => r.ok ? r.json() : { contacts: [] }),
-    ]).then(async ([prioritiesData, pipelinesData, contactsData]) => {
+    ]).then(async ([prioritiesData, sourcesData, pipelinesData, contactsData]) => {
       setPriorities(prioritiesData.items || []);
+      setSources(sourcesData.items || []);
       setContacts(contactsData.contacts || []);
 
       // Загрузить этапы для каждой воронки
@@ -200,6 +212,7 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
         archived: data.archived,
         contactId: isEditMode ? (data.contactId || null) : (data.contactId || undefined),
         priorityId: isEditMode ? (data.priorityId || null) : (data.priorityId || undefined),
+        sourceId: isEditMode ? (data.sourceId || null) : (data.sourceId || undefined),
         pipelineId: isEditMode ? (data.pipelineId || null) : (data.pipelineId || undefined),
         stageId: isEditMode ? (data.stageId || null) : (data.stageId || undefined),
         utm: showUtm ? data.utm : undefined,
@@ -233,6 +246,15 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
       color: p.properties.color as string | undefined,
     })),
     [priorities]
+  );
+
+  const sourceOptions: ColorOption[] = useMemo(() =>
+    sources.map(s => ({
+      value: s.id,
+      label: s.name,
+      color: s.properties.color as string | undefined,
+    })),
+    [sources]
   );
 
   const pipelineOptions: ColorOption[] = useMemo(() =>
@@ -365,7 +387,7 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
         </div>
       </div>
 
-      {/* Priority & Contact */}
+      {/* Priority & Source */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor={`${idPrefix}priorityId`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -386,23 +408,43 @@ export function OpportunityForm({ opportunity, onSuccess, onCancel }: Opportunit
           />
         </div>
         <div>
-          <label htmlFor={`${idPrefix}contactId`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-            Контакт
+          <label htmlFor={`${idPrefix}sourceId`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Источник
           </label>
           <Controller
             control={control}
-            name="contactId"
+            name="sourceId"
             render={({ field }) => (
               <ColorSelect
-                id={`${idPrefix}contactId`}
-                options={contactOptions}
+                id={`${idPrefix}sourceId`}
+                options={sourceOptions}
                 value={field.value || ''}
                 onChange={field.onChange}
-                placeholder="Не выбран"
+                placeholder="Не указан"
               />
             )}
           />
         </div>
+      </div>
+
+      {/* Contact */}
+      <div>
+        <label htmlFor={`${idPrefix}contactId`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          Контакт
+        </label>
+        <Controller
+          control={control}
+          name="contactId"
+          render={({ field }) => (
+            <ColorSelect
+              id={`${idPrefix}contactId`}
+              options={contactOptions}
+              value={field.value || ''}
+              onChange={field.onChange}
+              placeholder="Не выбран"
+            />
+          )}
+        />
       </div>
 
       {/* Description */}

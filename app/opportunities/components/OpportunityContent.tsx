@@ -25,6 +25,12 @@ interface Utm {
   content?: string;
 }
 
+interface Source {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface Priority {
   id: string;
   name: string;
@@ -92,6 +98,7 @@ interface Opportunity {
   contact?: Contact | null;
   owner?: Owner | null;
   priority?: Priority | null;
+  source?: Source | null;
   status?: Status | null;
   createdAt: string;
   updatedAt: string;
@@ -336,7 +343,12 @@ export function OpportunityContent({
                   </td>
                   <td className="text-zinc-900 dark:text-zinc-100 align-middle">
                     {opportunity.owner ? (
-                      <span>{opportunity.owner.name || opportunity.owner.email}</span>
+                      <Link
+                        href={`/users/${opportunity.owner.id}`}
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {opportunity.owner.name || opportunity.owner.email}
+                      </Link>
                     ) : (
                       <span className="text-zinc-400">—</span>
                     )}
@@ -374,6 +386,20 @@ export function OpportunityContent({
                     {formatDate(opportunity.updatedAt)}
                   </td>
                 </tr>
+
+                {/* Source */}
+                {opportunity.source && (
+                  <tr className="h-7">
+                    <td className="pr-4 text-zinc-500 dark:text-zinc-400 align-middle">
+                      Источник
+                    </td>
+                    <td className="align-middle">
+                      <Badge color={opportunity.source.color || '#71717a'}>
+                        {opportunity.source.name}
+                      </Badge>
+                    </td>
+                  </tr>
+                )}
 
                 {/* UTM fields */}
                 {opportunity.utm?.source && (

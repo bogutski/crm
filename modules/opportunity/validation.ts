@@ -23,6 +23,7 @@ export const createOpportunitySchema = z.object({
   contactId: z.string().optional().describe('ID связанного контакта'),
   ownerId: z.string().optional().describe('ID владельца'),
   priorityId: z.string().optional().describe('ID приоритета (из словаря)'),
+  sourceId: z.string().optional().describe('ID источника сделки (из словаря)'),
   pipelineId: z.string().optional().describe('ID воронки'),
   stageId: z.string().optional().describe('ID этапа воронки'),
 }).describe('Данные для создания сделки');
@@ -38,6 +39,7 @@ export const updateOpportunitySchema = z.object({
   contactId: z.string().optional().nullable().describe('ID связанного контакта'),
   ownerId: z.string().optional().nullable().describe('ID владельца'),
   priorityId: z.string().optional().nullable().describe('ID приоритета (из словаря)'),
+  sourceId: z.string().optional().nullable().describe('ID источника сделки (из словаря)'),
   pipelineId: z.string().optional().nullable().describe('ID воронки'),
   stageId: z.string().optional().nullable().describe('ID этапа воронки'),
 }).describe('Данные для обновления сделки');
@@ -94,6 +96,12 @@ export const opportunityOwnerResponseSchema = z.object({
   email: z.string().describe('Email владельца'),
 }).describe('Владелец сделки');
 
+export const opportunitySourceResponseSchema = z.object({
+  id: z.string().describe('ID источника'),
+  name: z.string().describe('Название'),
+  color: z.string().optional().describe('Цвет'),
+}).describe('Источник сделки');
+
 export const opportunityResponseSchema = z.object({
   id: z.string().describe('Уникальный идентификатор'),
   name: z.string().optional().describe('Название'),
@@ -106,6 +114,7 @@ export const opportunityResponseSchema = z.object({
   contact: opportunityContactResponseSchema.optional().nullable().describe('Контакт'),
   owner: opportunityOwnerResponseSchema.optional().nullable().describe('Владелец'),
   priority: opportunityPriorityResponseSchema.optional().nullable().describe('Приоритет'),
+  source: opportunitySourceResponseSchema.optional().nullable().describe('Источник'),
   pipeline: opportunityPipelineResponseSchema.optional().nullable().describe('Воронка'),
   stage: opportunityStageResponseSchema.optional().nullable().describe('Этап'),
   createdAt: z.coerce.date().describe('Дата создания'),
@@ -130,6 +139,7 @@ export const opportunityFormSchema = z.object({
   archived: z.boolean().optional(),
   contactId: z.string().optional(),
   priorityId: z.string().optional(),
+  sourceId: z.string().optional(),
   pipelineId: z.string().optional(),
   stageId: z.string().optional(),
   utm: z.object({

@@ -36,6 +36,12 @@ interface Owner {
   email: string;
 }
 
+interface Source {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface Opportunity {
   id: string;
   name?: string;
@@ -45,6 +51,7 @@ interface Opportunity {
   externalId?: string;
   archived: boolean;
   priority?: Priority | null;
+  source?: Source | null;
   stage?: Stage | null;
   pipeline?: { id: string; name: string; code: string } | null;
   contact?: Contact | null;
@@ -299,6 +306,9 @@ export function OpportunitiesTable({
                   Приоритет
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  Источник
+                </th>
+                <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Этап
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
@@ -345,6 +355,15 @@ export function OpportunitiesTable({
                     )}
                   </td>
                   <td className="px-4 py-1.5">
+                    {opportunity.source ? (
+                      <Badge color={opportunity.source.color || '#71717a'}>
+                        {opportunity.source.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-1.5">
                     {opportunity.stage ? (
                       <Badge color={opportunity.stage.color || '#71717a'}>
                         {opportunity.stage.name}
@@ -367,9 +386,13 @@ export function OpportunitiesTable({
                   </td>
                   <td className="px-4 py-1.5">
                     {opportunity.owner ? (
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400" title={opportunity.owner.email}>
+                      <Link
+                        href={`/users/${opportunity.owner.id}`}
+                        className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                        title={opportunity.owner.email}
+                      >
                         {opportunity.owner.name}
-                      </span>
+                      </Link>
                     ) : (
                       <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
                     )}

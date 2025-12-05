@@ -9,6 +9,13 @@ export interface OpportunityPriority {
   color?: string;
 }
 
+// Source from dictionary
+export interface OpportunitySource {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 // Pipeline reference
 export interface OpportunityPipeline {
   id: string;
@@ -52,6 +59,7 @@ export interface CreateOpportunityDTO {
   contactId?: string;
   ownerId?: string;
   priorityId?: string;
+  sourceId?: string;
   pipelineId?: string;
   stageId?: string;
 }
@@ -67,6 +75,7 @@ export interface UpdateOpportunityDTO {
   contactId?: string | null;
   ownerId?: string | null;
   priorityId?: string | null;
+  sourceId?: string | null;
   pipelineId?: string | null;
   stageId?: string | null;
 }
@@ -83,6 +92,7 @@ export interface OpportunityResponse {
   contact?: OpportunityContact | null;
   owner?: OpportunityOwner | null;
   priority?: OpportunityPriority | null;
+  source?: OpportunitySource | null;
   pipeline?: OpportunityPipeline | null;
   stage?: OpportunityStage | null;
   createdAt: Date;
@@ -109,6 +119,8 @@ export interface OpportunityFilters {
   maxAmount?: number;
   closingDateFrom?: Date | string;
   closingDateTo?: Date | string;
+  createdAtFrom?: Date | string;
+  createdAtTo?: Date | string;
   page?: number;
   limit?: number;
 }
