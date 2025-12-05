@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Users, Shield, Key, GitBranch, MessageCircle, Settings, Bot, Server, LucideIcon } from 'lucide-react';
+import { BookOpen, Users, Shield, Key, GitBranch, MessageCircle, Settings, Bot, Server, Phone, LucideIcon } from 'lucide-react';
 
 interface NavItem {
   href: string;
@@ -25,6 +25,11 @@ const settingsNavItems: NavItem[] = [
     href: '/settings/mcp',
     label: 'MCP Сервер',
     icon: Server,
+  },
+  {
+    href: '/settings/telephony',
+    label: 'Телефония',
+    icon: Phone,
   },
   {
     href: '/settings/pipelines',
