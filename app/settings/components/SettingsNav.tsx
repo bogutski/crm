@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Users, Shield, Key, GitBranch, MessageCircle, Settings, Bot, Server, Phone, LucideIcon } from 'lucide-react';
+import { BookOpen, Users, Shield, Key, GitBranch, MessageCircle, Settings, Bot, Server, Phone, Webhook, LucideIcon } from 'lucide-react';
 
 interface NavItem {
   href: string;
@@ -60,6 +60,11 @@ const settingsNavItems: NavItem[] = [
     href: '/settings/api',
     label: 'API',
     icon: Key,
+  },
+  {
+    href: '/settings/webhooks',
+    label: 'Вебхуки',
+    icon: Webhook,
   },
 ];
 
