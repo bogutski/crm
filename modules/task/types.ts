@@ -14,6 +14,13 @@ export interface TaskAssignee {
   email: string;
 }
 
+// Owner (task creator) reference
+export interface TaskOwner {
+  id: string;
+  name: string;
+  email: string;
+}
+
 // Linked entity response (contact or project)
 export interface LinkedEntityResponse {
   entityType: 'contact' | 'project';
@@ -58,6 +65,7 @@ export interface TaskResponse {
   completedAt?: Date;
   assignee?: TaskAssignee | null;
   linkedTo?: LinkedEntityResponse | null;
+  owner?: TaskOwner | null;
   ownerId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +88,8 @@ export interface TaskFilters {
   entityId?: string;
   dueDateFrom?: Date | string;
   dueDateTo?: Date | string;
+  createdAtFrom?: Date | string;
+  createdAtTo?: Date | string;
   overdue?: boolean;
   page?: number;
   limit?: number;
@@ -91,4 +101,5 @@ export interface TaskStatusCounts {
   in_progress: number;
   completed: number;
   cancelled: number;
+  overdue: number;
 }

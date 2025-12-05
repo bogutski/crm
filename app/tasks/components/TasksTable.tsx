@@ -21,6 +21,12 @@ interface Assignee {
   email: string;
 }
 
+interface Owner {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface LinkedEntity {
   entityType: 'contact' | 'project';
   entityId: string;
@@ -36,6 +42,7 @@ interface Task {
   dueDate?: string;
   completedAt?: string;
   assignee?: Assignee | null;
+  owner?: Owner | null;
   linkedTo?: LinkedEntity | null;
   ownerId: string;
   createdAt: string;
@@ -346,6 +353,9 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
                   Привязка
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  Постановщик
+                </th>
+                <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   Ответственный
                 </th>
                 <th className="text-left px-4 py-1.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
@@ -422,6 +432,15 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
                           )}
                           {task.linkedTo.name}
                         </button>
+                      ) : (
+                        <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-1.5">
+                      {task.owner ? (
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                          {task.owner.name}
+                        </span>
                       ) : (
                         <span className="text-sm text-zinc-400 dark:text-zinc-500">-</span>
                       )}

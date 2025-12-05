@@ -8,6 +8,7 @@ import {
   TaskFilters,
   TaskPriority,
   TaskAssignee,
+  TaskOwner,
   LinkedEntityResponse,
   TaskStatusCounts,
 } from './types';
@@ -53,6 +54,24 @@ function toAssigneeResponse(assignee: mongoose.Types.ObjectId | { _id: mongoose.
   };
 }
 
+function toOwnerResponse(owner: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name?: string; email?: string } | undefined): TaskOwner | null {
+  if (!owner) return null;
+
+  if (owner instanceof mongoose.Types.ObjectId) {
+    return null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const o = owner as any;
+  if (!o._id) return null;
+
+  return {
+    id: o._id.toString(),
+    name: o.name || '',
+    email: o.email || '',
+  };
+}
+
 function toLinkedEntityResponse(
   linkedTo: ILinkedEntity | undefined,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,6 +104,7 @@ function toTaskResponse(task: ITask, populatedLinkedEntity?: unknown): TaskRespo
     completedAt: task.completedAt,
     assignee: toAssigneeResponse(t.assigneeId),
     linkedTo: toLinkedEntityResponse(task.linkedTo, populatedLinkedEntity),
+    owner: toOwnerResponse(t.ownerId),
     ownerId: task.ownerId.toString(),
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -124,6 +144,8 @@ export async function getTasks(filters: TaskFilters): Promise<TasksListResponse>
     entityId,
     dueDateFrom,
     dueDateTo,
+    createdAtFrom,
+    createdAtTo,
     overdue,
     page = 1,
     limit = 30,
@@ -172,6 +194,16 @@ export async function getTasks(filters: TaskFilters): Promise<TasksListResponse>
     }
   }
 
+  if (createdAtFrom || createdAtTo) {
+    query.createdAt = {};
+    if (createdAtFrom) {
+      (query.createdAt as Record<string, unknown>).$gte = new Date(createdAtFrom);
+    }
+    if (createdAtTo) {
+      (query.createdAt as Record<string, unknown>).$lte = new Date(createdAtTo);
+    }
+  }
+
   if (overdue) {
     query.dueDate = { ...((query.dueDate as object) || {}), $lt: new Date() };
     query.status = { $nin: ['completed', 'cancelled'] };
@@ -183,6 +215,7 @@ export async function getTasks(filters: TaskFilters): Promise<TasksListResponse>
     Task.find(query)
       .populate('priorityId', '_id name properties')
       .populate('assigneeId', '_id name email')
+      .populate('ownerId', '_id name email')
       .sort({ dueDate: 1, createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -210,7 +243,8 @@ export async function getTaskById(id: string): Promise<TaskResponse | null> {
 
   const task = await Task.findById(id)
     .populate('priorityId', '_id name properties')
-    .populate('assigneeId', '_id name email');
+    .populate('assigneeId', '_id name email')
+    .populate('ownerId', '_id name email');
 
   if (!task) return null;
 
@@ -242,6 +276,7 @@ export async function createTask(data: CreateTaskDTO): Promise<TaskResponse> {
 
   await task.populate('priorityId', '_id name properties');
   await task.populate('assigneeId', '_id name email');
+  await task.populate('ownerId', '_id name email');
 
   const linkedEntity = await populateLinkedEntity(task);
   return toTaskResponse(task, linkedEntity);
@@ -313,7 +348,8 @@ export async function updateTask(
     // Nothing to update
     const task = await Task.findById(id)
       .populate('priorityId', '_id name properties')
-      .populate('assigneeId', '_id name email');
+      .populate('assigneeId', '_id name email')
+      .populate('ownerId', '_id name email');
     if (!task) return null;
     const linkedEntity = await populateLinkedEntity(task);
     return toTaskResponse(task, linkedEntity);
@@ -321,7 +357,8 @@ export async function updateTask(
 
   const task = await Task.findByIdAndUpdate(id, updateQuery, { new: true })
     .populate('priorityId', '_id name properties')
-    .populate('assigneeId', '_id name email');
+    .populate('assigneeId', '_id name email')
+    .populate('ownerId', '_id name email');
 
   if (!task) return null;
 
@@ -348,6 +385,7 @@ export async function getTasksByEntity(
   })
     .populate('priorityId', '_id name properties')
     .populate('assigneeId', '_id name email')
+    .populate('ownerId', '_id name email')
     .sort({ dueDate: 1, createdAt: -1 });
 
   const tasksWithLinked = await Promise.all(
@@ -366,6 +404,7 @@ export async function getTasksByOwner(ownerId: string): Promise<TaskResponse[]> 
   const tasks = await Task.find({ ownerId })
     .populate('priorityId', '_id name properties')
     .populate('assigneeId', '_id name email')
+    .populate('ownerId', '_id name email')
     .sort({ dueDate: 1, createdAt: -1 });
 
   const tasksWithLinked = await Promise.all(
@@ -421,13 +460,20 @@ export async function getTaskStatusCounts(filters: Omit<TaskFilters, 'status' | 
     }
   }
 
-  const [all, open, in_progress, completed, cancelled] = await Promise.all([
+  const now = new Date();
+
+  const [all, open, in_progress, completed, cancelled, overdue] = await Promise.all([
     Task.countDocuments(baseQuery),
     Task.countDocuments({ ...baseQuery, status: 'open' }),
     Task.countDocuments({ ...baseQuery, status: 'in_progress' }),
     Task.countDocuments({ ...baseQuery, status: 'completed' }),
     Task.countDocuments({ ...baseQuery, status: 'cancelled' }),
+    Task.countDocuments({
+      ...baseQuery,
+      dueDate: { $lt: now },
+      status: { $nin: ['completed', 'cancelled'] },
+    }),
   ]);
 
-  return { all, open, in_progress, completed, cancelled };
+  return { all, open, in_progress, completed, cancelled, overdue };
 }
