@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Search, User } from 'lucide-react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Search, User, Loader2 } from 'lucide-react';
 
 interface Email {
   address: string;
@@ -35,50 +35,154 @@ export interface ChatContact {
 interface ChatContactListProps {
   selectedContactId: string | null;
   onSelectContact: (contact: ChatContact) => void;
+  initialContactId?: string | null;
 }
 
-export function ChatContactList({ selectedContactId, onSelectContact }: ChatContactListProps) {
+const CONTACTS_PER_PAGE = 20;
+
+export function ChatContactList({ selectedContactId, onSelectContact, initialContactId }: ChatContactListProps) {
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [initialContactHandled, setInitialContactHandled] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchContacts = async () => {
+  // Debounce search query
+  useEffect(() => {
+    // Show searching indicator immediately when user types
+    if (searchQuery !== debouncedSearch) {
+      setIsSearching(true);
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedSearch]);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+  }, [debouncedSearch]);
+
+  const fetchContacts = useCallback(async (pageNum: number, search: string, append: boolean = false, isInitial: boolean = false, priorityId?: string | null) => {
+    // Only show full loading state on initial load (not during search)
+    if (isInitial) {
+      setLoading(true);
+    } else if (pageNum > 1) {
+      setLoadingMore(true);
+    }
+
     try {
-      const response = await fetch('/api/chat/contacts');
+      const params = new URLSearchParams({
+        page: pageNum.toString(),
+        limit: CONTACTS_PER_PAGE.toString(),
+      });
+      if (search) {
+        params.set('search', search);
+      }
+      // Pass priority contact ID on first page to ensure it's included
+      if (pageNum === 1 && priorityId) {
+        params.set('priorityContactId', priorityId);
+      }
+
+      const response = await fetch(`/api/chat/contacts?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setContacts(data.contacts || []);
+        const newContacts = data.contacts || [];
+
+        if (append) {
+          // Filter out duplicates when appending
+          setContacts(prev => {
+            const existingIds = new Set(prev.map(c => c.contactId));
+            const uniqueNewContacts = newContacts.filter((c: ChatContact) => !existingIds.has(c.contactId));
+            return [...prev, ...uniqueNewContacts];
+          });
+        } else {
+          setContacts(newContacts);
+        }
+
+        setHasMore(data.hasMore ?? false);
       }
     } catch (error) {
       console.error('Error fetching chat contacts:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+      setIsSearching(false);
     }
-  };
-
-  useEffect(() => {
-    fetchContacts();
   }, []);
+
+  // Initial load
+  const isInitialLoad = useRef(true);
+  useEffect(() => {
+    // Pass initialContactId on first load to ensure it's included in results
+    fetchContacts(1, debouncedSearch, false, isInitialLoad.current, isInitialLoad.current ? initialContactId : null);
+    isInitialLoad.current = false;
+  }, [debouncedSearch, fetchContacts, initialContactId]);
+
+  // Load more when page changes (except initial)
+  useEffect(() => {
+    if (page > 1) {
+      fetchContacts(page, debouncedSearch, true, false, null);
+    }
+  }, [page, debouncedSearch, fetchContacts]);
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore && !isSearching) {
+          setPage(prev => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, loading, loadingMore, isSearching]);
 
   // Listen for new messages to refresh the list
   useEffect(() => {
     const handleMessagesUpdated = () => {
-      fetchContacts();
+      setPage(1);
+      setHasMore(true);
+      fetchContacts(1, debouncedSearch, false, false);
     };
 
     window.addEventListener('messagesUpdated', handleMessagesUpdated);
     return () => window.removeEventListener('messagesUpdated', handleMessagesUpdated);
-  }, []);
+  }, [debouncedSearch, fetchContacts]);
 
-  const filteredContacts = contacts.filter(contact => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      contact.name.toLowerCase().includes(query) ||
-      contact.company?.toLowerCase().includes(query) ||
-      contact.lastMessage?.toLowerCase().includes(query)
-    );
-  });
+  // Auto-select contact from URL after initial load
+  useEffect(() => {
+    if (!initialContactHandled && initialContactId && contacts.length > 0 && !loading) {
+      const contact = contacts.find(c => c.contactId === initialContactId);
+      if (contact) {
+        onSelectContact(contact);
+      }
+      setInitialContactHandled(true);
+    }
+  }, [initialContactId, contacts, loading, initialContactHandled, onSelectContact]);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -122,14 +226,17 @@ export function ChatContactList({ selectedContactId, onSelectContact }: ChatCont
             placeholder="Поиск..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
+            className="w-full pl-9 pr-9 py-2 text-sm bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
           />
+          {isSearching && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+          )}
         </div>
       </div>
 
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto">
-        {filteredContacts.length === 0 ? (
+        {contacts.length === 0 && !loading && !isSearching ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {searchQuery ? 'Контакты не найдены' : 'Нет контактов с перепиской'}
@@ -137,7 +244,7 @@ export function ChatContactList({ selectedContactId, onSelectContact }: ChatCont
           </div>
         ) : (
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {filteredContacts.map((contact) => {
+            {contacts.map((contact) => {
               const isSelected = selectedContactId === contact.contactId;
               return (
                 <button
@@ -186,6 +293,15 @@ export function ChatContactList({ selectedContactId, onSelectContact }: ChatCont
                 </button>
               );
             })}
+
+            {/* Load more trigger */}
+            {hasMore && (
+              <div ref={loadMoreRef} className="flex items-center justify-center py-4">
+                {loadingMore && (
+                  <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

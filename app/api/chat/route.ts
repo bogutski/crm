@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[AI Chat] Authorization successful:', authResult.type);
 
-    const userId = authResult.userId || authResult.apiToken?.userId;
+    const userId = authResult.userId;
     if (!userId) {
       console.log('[AI Chat] User ID not found');
       return new Response(JSON.stringify({ error: 'User ID not found' }), {
@@ -186,9 +186,9 @@ export async function POST(request: NextRequest) {
             metadata: {
               model: modelName,
               tokens: {
-                prompt: event.usage?.promptTokens || 0,
-                completion: event.usage?.completionTokens || 0,
-                total: event.usage?.totalTokens || 0,
+                prompt: event.usage?.inputTokens || 0,
+                completion: event.usage?.outputTokens || 0,
+                total: (event.usage?.inputTokens || 0) + (event.usage?.outputTokens || 0),
               },
             },
           });

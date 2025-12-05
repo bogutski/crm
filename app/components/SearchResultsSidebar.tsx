@@ -247,8 +247,8 @@ export function SearchResultsSidebar({
                         count={results.contacts.total}
                         onShowAll={() => setActiveFilter('contacts')}
                       >
-                        {results.contacts.items.slice(0, 3).map((contact) => (
-                          <ContactItem key={contact.id} contact={contact} onClose={onClose} />
+                        {results.contacts.items.slice(0, 10).map((contact) => (
+                          <ContactItemCompact key={contact.id} contact={contact} onClose={onClose} />
                         ))}
                       </ResultSection>
                     )}
@@ -261,8 +261,8 @@ export function SearchResultsSidebar({
                         count={results.opportunities.total}
                         onShowAll={() => setActiveFilter('opportunities')}
                       >
-                        {results.opportunities.items.slice(0, 3).map((opp) => (
-                          <OpportunityItem key={opp.id} opportunity={opp} onClose={onClose} />
+                        {results.opportunities.items.slice(0, 10).map((opp) => (
+                          <OpportunityItemCompact key={opp.id} opportunity={opp} onClose={onClose} />
                         ))}
                       </ResultSection>
                     )}
@@ -275,8 +275,8 @@ export function SearchResultsSidebar({
                         count={results.tasks.total}
                         onShowAll={() => setActiveFilter('tasks')}
                       >
-                        {results.tasks.items.slice(0, 3).map((task) => (
-                          <TaskItem key={task.id} task={task} onClose={onClose} />
+                        {results.tasks.items.slice(0, 10).map((task) => (
+                          <TaskItemCompact key={task.id} task={task} onClose={onClose} />
                         ))}
                       </ResultSection>
                     )}
@@ -379,7 +379,7 @@ function ResultSection({
             {count}
           </span>
         </div>
-        {count > 3 && (
+        {count > 10 && (
           <button
             onClick={onShowAll}
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
@@ -471,6 +471,83 @@ function TaskItem({
         </p>
       </div>
       <ChevronRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-400 dark:group-hover:text-zinc-500 flex-shrink-0" />
+    </Link>
+  );
+}
+
+// Compact versions for "All results" view
+function ContactItemCompact({
+  contact,
+  onClose,
+}: {
+  contact: { id: string; name: string; company?: string; email?: string };
+  onClose: () => void;
+}) {
+  return (
+    <Link
+      href={`/contacts/${contact.id}`}
+      onClick={onClose}
+      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
+    >
+      <span className="text-sm text-zinc-900 dark:text-zinc-50 truncate flex-1">
+        {contact.name}
+      </span>
+      {contact.company && (
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate max-w-[120px]">
+          {contact.company}
+        </span>
+      )}
+      <ChevronRight className="w-3 h-3 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-400 flex-shrink-0" />
+    </Link>
+  );
+}
+
+function OpportunityItemCompact({
+  opportunity,
+  onClose,
+}: {
+  opportunity: { id: string; name?: string; amount?: number; stage?: string };
+  onClose: () => void;
+}) {
+  return (
+    <Link
+      href={`/opportunities/${opportunity.id}`}
+      onClick={onClose}
+      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
+    >
+      <span className="text-sm text-zinc-900 dark:text-zinc-50 truncate flex-1">
+        {opportunity.name || 'Без названия'}
+      </span>
+      {opportunity.amount && (
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 whitespace-nowrap">
+          {formatAmount(opportunity.amount)}
+        </span>
+      )}
+      <ChevronRight className="w-3 h-3 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-400 flex-shrink-0" />
+    </Link>
+  );
+}
+
+function TaskItemCompact({
+  task,
+  onClose,
+}: {
+  task: { id: string; title: string; status: string; dueDate?: Date };
+  onClose: () => void;
+}) {
+  return (
+    <Link
+      href={`/tasks?taskId=${task.id}`}
+      onClick={onClose}
+      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
+    >
+      <span className="text-sm text-zinc-900 dark:text-zinc-50 truncate flex-1">
+        {task.title}
+      </span>
+      <span className="text-xs text-zinc-400 dark:text-zinc-500 whitespace-nowrap">
+        {statusLabels[task.status] || task.status}
+      </span>
+      <ChevronRight className="w-3 h-3 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-400 flex-shrink-0" />
     </Link>
   );
 }

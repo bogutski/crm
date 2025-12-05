@@ -337,14 +337,7 @@ export function OpportunitiesTable({
                   </td>
                   <td className="px-4 py-1.5">
                     {opportunity.priority ? (
-                      <Badge
-                        style={{
-                          backgroundColor: opportunity.priority.color
-                            ? `${opportunity.priority.color}20`
-                            : '#71717a20',
-                          color: opportunity.priority.color || '#71717a',
-                        }}
-                      >
+                      <Badge color={opportunity.priority.color || '#71717a'}>
                         {opportunity.priority.name}
                       </Badge>
                     ) : (
@@ -353,14 +346,7 @@ export function OpportunitiesTable({
                   </td>
                   <td className="px-4 py-1.5">
                     {opportunity.stage ? (
-                      <Badge
-                        style={{
-                          backgroundColor: opportunity.stage.color
-                            ? `${opportunity.stage.color}20`
-                            : '#71717a20',
-                          color: opportunity.stage.color || '#71717a',
-                        }}
-                      >
+                      <Badge color={opportunity.stage.color || '#71717a'}>
                         {opportunity.stage.name}
                       </Badge>
                     ) : (

@@ -38,6 +38,7 @@ export interface UpdateContactDTO {
   notes?: string;
   contactType?: string | null;
   source?: string | null;
+  ownerId?: string | null;
 }
 
 export interface ContactResponse {

@@ -48,27 +48,30 @@ export function ResizablePanel({
     return 8;
   }, [maxColumns]);
 
-  // Загрузка сохранённого размера (с ленивой инициализацией)
-  const [columns, setColumns] = useState(() => {
-    if (typeof window !== 'undefined' && storageKey) {
+  // Используем defaultColumns для начального рендера (SSR-совместимо)
+  const [columns, setColumns] = useState(defaultColumns);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Загрузка сохранённого размера после гидратации
+  useEffect(() => {
+    if (storageKey) {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = parseInt(saved, 10);
-        // Используем defaultColumns для max, так как getMaxColumns зависит от DOM
         if (!isNaN(parsed) && parsed >= minColumns) {
-          return parsed;
+          setColumns(parsed);
         }
       }
     }
-    return defaultColumns;
-  });
+    setIsHydrated(true);
+  }, [storageKey, minColumns]);
 
   // Сохранение размера
   useEffect(() => {
-    if (storageKey && !isDragging) {
+    if (storageKey && !isDragging && isHydrated) {
       localStorage.setItem(storageKey, columns.toString());
     }
-  }, [columns, storageKey, isDragging]);
+  }, [columns, storageKey, isDragging, isHydrated]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {

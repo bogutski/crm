@@ -9,6 +9,7 @@ import {
   Briefcase,
   Archive,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
 import { SlideOver } from '@/app/components/SlideOver';
 import { ConfirmDialog } from '@/app/components/ConfirmDialog';
 import { ResizablePanel } from '@/app/components/ResizablePanel';
@@ -258,36 +259,20 @@ export function OpportunityContent({
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   {opportunity.status && (
-                    <span
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: opportunity.status.color
-                          ? `${opportunity.status.color}20`
-                          : '#71717a20',
-                        color: opportunity.status.color || '#71717a',
-                      }}
-                    >
+                    <Badge color={opportunity.status.color || '#71717a'}>
                       {opportunity.status.name}
-                    </span>
+                    </Badge>
                   )}
                   {opportunity.priority && (
-                    <span
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: opportunity.priority.color
-                          ? `${opportunity.priority.color}20`
-                          : '#71717a20',
-                        color: opportunity.priority.color || '#71717a',
-                      }}
-                    >
+                    <Badge color={opportunity.priority.color || '#71717a'}>
                       {opportunity.priority.name}
-                    </span>
+                    </Badge>
                   )}
                   {opportunity.archived && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
+                    <Badge variant="dark">
                       <Archive className="w-3 h-3" />
                       Архив
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -528,36 +513,28 @@ export function OpportunityContent({
                         Тип
                       </td>
                       <td className="align-middle">
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: contact.contactType.color
-                              ? `${contact.contactType.color}20`
-                              : '#71717a20',
-                            color: contact.contactType.color || '#71717a',
-                          }}
-                        >
+                        <Badge color={contact.contactType.color || '#71717a'}>
                           {contact.contactType.name}
-                        </span>
+                        </Badge>
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             )}
-          </div>
 
-          {/* Description */}
-          {opportunity.description && (
-            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-              <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
-                Описание
+            {/* Third column - Description */}
+            {opportunity.description && (
+              <div className="text-sm max-w-xs">
+                <div className="text-zinc-500 dark:text-zinc-400 mb-2">
+                  Описание
+                </div>
+                <p className="text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap">
+                  {opportunity.description}
+                </p>
               </div>
-              <p className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap">
-                {opportunity.description}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Right Side - Timeline (resizable) */}

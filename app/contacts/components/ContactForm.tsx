@@ -15,6 +15,12 @@ interface ContactType {
   color?: string;
 }
 
+interface Owner {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface Contact {
   id: string;
   name: string;
@@ -31,6 +37,7 @@ interface Contact {
   notes?: string;
   contactType?: ContactType | null;
   source?: string;
+  owner?: Owner | null;
 }
 
 interface DictionaryItem {
@@ -54,13 +61,14 @@ const getDefaultValues = (contact?: Contact): ContactFormData => {
         ? contact.emails.map(e => ({ address: e.address }))
         : [{ address: '' }],
       phones: contact.phones.length > 0
-        ? contact.phones.map(p => ({ number: p.international || p.e164, isPrimary: p.isPrimary }))
+        ? contact.phones.map(p => ({ number: p.e164, isPrimary: p.isPrimary }))
         : [{ number: '', isPrimary: true }],
       company: contact.company || '',
       position: contact.position || '',
       notes: contact.notes || '',
       contactType: contact.contactType?.id || '',
       source: contact.source || '',
+      ownerId: contact.owner?.id || '',
     };
   }
 
@@ -73,6 +81,7 @@ const getDefaultValues = (contact?: Contact): ContactFormData => {
     notes: '',
     contactType: '',
     source: '',
+    ownerId: '',
   };
 };
 
@@ -83,6 +92,7 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
   // Словари
   const [contactTypes, setContactTypes] = useState<DictionaryItem[]>([]);
   const [sources, setSources] = useState<DictionaryItem[]>([]);
+  const [users, setUsers] = useState<Owner[]>([]);
 
   const {
     register,
@@ -115,9 +125,15 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
     Promise.all([
       fetch('/api/dictionaries/contact_types/items').then(r => r.ok ? r.json() : { items: [] }),
       fetch('/api/dictionaries/sources/items').then(r => r.ok ? r.json() : { items: [] }),
-    ]).then(([typesData, sourcesData]) => {
+      fetch('/api/users/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 100 }),
+      }).then(r => r.ok ? r.json() : { users: [] }),
+    ]).then(([typesData, sourcesData, usersData]) => {
       setContactTypes(typesData.items || []);
       setSources(sourcesData.items || []);
+      setUsers(usersData.users || []);
     });
   }, []);
 
@@ -143,19 +159,13 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
         .filter(e => e.address.trim())
         .map(e => ({ address: e.address.trim() }));
 
+      // Отправляем только e164 и isPrimary - бэкенд сам заполнит остальные поля
       const validPhones = data.phones
         .filter(p => p.number.trim())
-        .map(p => {
-          const cleaned = p.number.replace(/[\s\-()]/g, '');
-          const e164 = cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
-          return {
-            e164,
-            international: p.number,
-            country: 'US',
-            type: 'MOBILE' as const,
-            isPrimary: p.isPrimary,
-          };
-        });
+        .map(p => ({
+          e164: p.number,
+          isPrimary: p.isPrimary,
+        }));
 
       const payload = {
         name: data.name.trim(),
@@ -166,6 +176,7 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
         notes: data.notes?.trim() || undefined,
         contactType: isEditMode ? (data.contactType || null) : (data.contactType || undefined),
         source: isEditMode ? (data.source || null) : (data.source || undefined),
+        ownerId: isEditMode ? (data.ownerId || null) : (data.ownerId || undefined),
       };
 
       const url = isEditMode ? `/api/contacts/${contact!.id}` : '/api/contacts';
@@ -208,6 +219,15 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
     })),
     [sources]
   );
+
+  // Преобразуем пользователей в формат ColorSelect
+  const ownerOptions: ColorOption[] = useMemo(() => [
+    { value: '', label: 'Не назначен' },
+    ...users.map(u => ({
+      value: u.id,
+      label: u.name,
+    })),
+  ], [users]);
 
   const idPrefix = isEditMode ? 'edit-' : '';
 
@@ -332,6 +352,25 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Owner */}
+      <div>
+        <label htmlFor={`${idPrefix}ownerId`} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+          Владелец
+        </label>
+        <Controller
+          control={control}
+          name="ownerId"
+          render={({ field }) => (
+            <ColorSelect
+              id={`${idPrefix}ownerId`}
+              options={ownerOptions}
+              value={field.value || ''}
+              onChange={field.onChange}
+            />
+          )}
+        />
       </div>
 
       {/* Contact Type & Source */}
