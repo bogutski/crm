@@ -4,12 +4,12 @@ import { resolve } from 'path';
 // Load .env.local
 config({ path: resolve(__dirname, '../.env.local') });
 
-import { connectDB } from '../lib/mongodb';
-import { SystemSettings } from '../modules/system-settings/model';
+import { connectToDatabase } from '../lib/mongodb';
+import SystemSettings from '../modules/system-settings/model';
 
 async function checkAISettings() {
   try {
-    await connectDB();
+    await connectToDatabase();
 
     const settings = await SystemSettings.findOne();
 
