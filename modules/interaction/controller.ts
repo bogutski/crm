@@ -7,6 +7,7 @@ import {
   InteractionFilters,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { safeEmitWebhookEvent } from '@/lib/events';
 import mongoose from 'mongoose';
 
 // === Преобразователь в Response ===
@@ -183,6 +184,10 @@ export async function createInteraction(
 
   // Fetch with populated fields
   const result = await getInteractionById(interaction._id.toString());
+
+  // Emit webhook event
+  safeEmitWebhookEvent('interaction', 'created', result);
+
   return result!;
 }
 
@@ -202,7 +207,12 @@ export async function updateInteraction(
 
   if (!interaction) return null;
 
-  return getInteractionById(id);
+  const result = await getInteractionById(id);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('interaction', 'updated', result);
+
+  return result;
 }
 
 export async function deleteInteraction(id: string): Promise<boolean> {
@@ -211,6 +221,12 @@ export async function deleteInteraction(id: string): Promise<boolean> {
   if (!mongoose.Types.ObjectId.isValid(id)) return false;
 
   const result = await Interaction.findByIdAndDelete(id);
+
+  if (result) {
+    // Emit webhook event
+    safeEmitWebhookEvent('interaction', 'deleted', { id });
+  }
+
   return !!result;
 }
 

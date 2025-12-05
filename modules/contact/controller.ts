@@ -11,6 +11,7 @@ import {
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
 import { normalizePhone } from '@/lib/phone-format';
+import { safeEmitWebhookEvent } from '@/lib/events';
 // Импортируем DictionaryItem и User чтобы модели были зарегистрированы для populate
 import '@/modules/dictionary/model';
 import '@/modules/user/model';
@@ -215,7 +216,12 @@ export async function createContact(data: CreateContactDTO): Promise<ContactResp
   await contact.populate('contactType', '_id name properties');
   await contact.populate('ownerId', '_id name email');
 
-  return toContactResponse(contact);
+  const response = toContactResponse(contact);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('contact', 'created', response);
+
+  return response;
 }
 
 export async function updateContact(
@@ -251,13 +257,24 @@ export async function updateContact(
 
   if (!contact) return null;
 
-  return toContactResponse(contact);
+  const response = toContactResponse(contact);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('contact', 'updated', response);
+
+  return response;
 }
 
 export async function deleteContact(id: string): Promise<boolean> {
   await dbConnect();
 
   const result = await Contact.findByIdAndDelete(id);
+
+  if (result) {
+    // Emit webhook event
+    safeEmitWebhookEvent('contact', 'deleted', { id });
+  }
+
   return !!result;
 }
 

@@ -13,6 +13,7 @@ import {
   PipelineStagesListResponse,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { safeEmitWebhookEvent } from '@/lib/events';
 
 // ==================== HELPERS ====================
 
@@ -164,7 +165,12 @@ export async function createPipeline(data: CreatePipelineDTO): Promise<PipelineR
   const pipeline = new Pipeline(data);
   await pipeline.save();
 
-  return formatPipeline(pipeline, 0);
+  const response = formatPipeline(pipeline, 0);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('pipeline', 'created', response);
+
+  return response;
 }
 
 export async function updatePipeline(
@@ -199,8 +205,12 @@ export async function updatePipeline(
   }
 
   const stagesCount = await PipelineStage.countDocuments({ pipelineId: pipeline._id });
+  const response = formatPipeline(pipeline, stagesCount);
 
-  return formatPipeline(pipeline, stagesCount);
+  // Emit webhook event
+  safeEmitWebhookEvent('pipeline', 'updated', response);
+
+  return response;
 }
 
 export async function deletePipeline(id: string): Promise<boolean> {
@@ -221,6 +231,12 @@ export async function deletePipeline(id: string): Promise<boolean> {
     const result = await Pipeline.findByIdAndDelete(id, { session });
 
     await session.commitTransaction();
+
+    if (result) {
+      // Emit webhook event
+      safeEmitWebhookEvent('pipeline', 'deleted', { id });
+    }
+
     return !!result;
   } catch (error) {
     await session.abortTransaction();

@@ -6,6 +6,7 @@ import {
   UpdateChannelDTO,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { safeEmitWebhookEvent } from '@/lib/events';
 import mongoose from 'mongoose';
 
 // === Преобразователь в Response ===
@@ -68,7 +69,12 @@ export async function createChannel(data: CreateChannelDTO): Promise<ChannelResp
     isActive: data.isActive ?? true,
   });
 
-  return toChannelResponse(channel);
+  const response = toChannelResponse(channel);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('channel', 'created', response);
+
+  return response;
 }
 
 export async function updateChannel(
@@ -85,7 +91,14 @@ export async function updateChannel(
     { new: true }
   );
 
-  return channel ? toChannelResponse(channel) : null;
+  if (!channel) return null;
+
+  const response = toChannelResponse(channel);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('channel', 'updated', response);
+
+  return response;
 }
 
 export async function deleteChannel(id: string): Promise<boolean> {
@@ -94,5 +107,11 @@ export async function deleteChannel(id: string): Promise<boolean> {
   if (!mongoose.Types.ObjectId.isValid(id)) return false;
 
   const result = await Channel.findByIdAndDelete(id);
+
+  if (result) {
+    // Emit webhook event
+    safeEmitWebhookEvent('channel', 'deleted', { id });
+  }
+
   return !!result;
 }

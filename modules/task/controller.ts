@@ -13,6 +13,7 @@ import {
   TaskStatusCounts,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { safeEmitWebhookEvent } from '@/lib/events';
 // Import models for populate
 import '@/modules/dictionary/model';
 import '@/modules/contact/model';
@@ -279,7 +280,12 @@ export async function createTask(data: CreateTaskDTO): Promise<TaskResponse> {
   await task.populate('ownerId', '_id name email');
 
   const linkedEntity = await populateLinkedEntity(task);
-  return toTaskResponse(task, linkedEntity);
+  const response = toTaskResponse(task, linkedEntity);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('task', 'created', response);
+
+  return response;
 }
 
 export async function updateTask(
@@ -363,13 +369,24 @@ export async function updateTask(
   if (!task) return null;
 
   const linkedEntity = await populateLinkedEntity(task);
-  return toTaskResponse(task, linkedEntity);
+  const response = toTaskResponse(task, linkedEntity);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('task', 'updated', response);
+
+  return response;
 }
 
 export async function deleteTask(id: string): Promise<boolean> {
   await dbConnect();
 
   const result = await Task.findByIdAndDelete(id);
+
+  if (result) {
+    // Emit webhook event
+    safeEmitWebhookEvent('task', 'deleted', { id });
+  }
+
   return !!result;
 }
 

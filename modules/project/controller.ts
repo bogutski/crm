@@ -9,6 +9,7 @@ import {
   ProjectOwner,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { safeEmitWebhookEvent } from '@/lib/events';
 
 function toOwnerResponse(owner: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name?: string; email?: string } | undefined): ProjectOwner | null {
   if (!owner) return null;
@@ -118,7 +119,12 @@ export async function createProject(data: CreateProjectDTO): Promise<ProjectResp
 
   await project.populate('ownerId', '_id name email');
 
-  return toProjectResponse(project);
+  const response = toProjectResponse(project);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('project', 'created', response);
+
+  return response;
 }
 
 export async function updateProject(
@@ -153,13 +159,24 @@ export async function updateProject(
 
   if (!project) return null;
 
-  return toProjectResponse(project);
+  const response = toProjectResponse(project);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('project', 'updated', response);
+
+  return response;
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
   await dbConnect();
 
   const result = await Project.findByIdAndDelete(id);
+
+  if (result) {
+    // Emit webhook event
+    safeEmitWebhookEvent('project', 'deleted', { id });
+  }
+
   return !!result;
 }
 

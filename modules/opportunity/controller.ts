@@ -8,6 +8,7 @@ import {
   OpportunityFilters,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { safeEmitWebhookEvent } from '@/lib/events';
 // Import models for mongoose to register them before populate
 import '@/modules/dictionary/model';
 import '@/modules/contact/model';
@@ -266,7 +267,12 @@ export async function createOpportunity(
     .populate('stageId', 'name color order probability isInitial isFinal isWon')
     .lean();
 
-  return toOpportunityResponse(populated as unknown as PopulatedOpportunity);
+  const response = toOpportunityResponse(populated as unknown as PopulatedOpportunity);
+
+  // Emit webhook event
+  safeEmitWebhookEvent('opportunity', 'created', response);
+
+  return response;
 }
 
 export async function updateOpportunity(
@@ -274,6 +280,13 @@ export async function updateOpportunity(
   data: UpdateOpportunityDTO
 ): Promise<OpportunityResponse | null> {
   await dbConnect();
+
+  // Get previous state to detect stage change
+  let previousStageId: string | null = null;
+  if (data.stageId !== undefined) {
+    const previousOpp = await Opportunity.findById(id).select('stageId').lean();
+    previousStageId = previousOpp?.stageId?.toString() || null;
+  }
 
   const updateData: Record<string, unknown> = {};
 
@@ -302,13 +315,33 @@ export async function updateOpportunity(
 
   if (!opp) return null;
 
-  return toOpportunityResponse(opp as unknown as PopulatedOpportunity);
+  const response = toOpportunityResponse(opp as unknown as PopulatedOpportunity);
+
+  // Emit webhook events
+  safeEmitWebhookEvent('opportunity', 'updated', response);
+
+  // Emit stage_changed event if stage was changed
+  if (data.stageId !== undefined && previousStageId !== data.stageId) {
+    safeEmitWebhookEvent('opportunity', 'stage_changed', {
+      opportunity: response,
+      previousStageId,
+      newStageId: data.stageId,
+    });
+  }
+
+  return response;
 }
 
 export async function deleteOpportunity(id: string): Promise<boolean> {
   await dbConnect();
 
   const result = await Opportunity.findByIdAndDelete(id);
+
+  if (result) {
+    // Emit webhook event
+    safeEmitWebhookEvent('opportunity', 'deleted', { id });
+  }
+
   return !!result;
 }
 
@@ -415,6 +448,10 @@ export async function moveOpportunityToStage(
 ): Promise<OpportunityResponse | null> {
   await dbConnect();
 
+  // Get previous stage for event
+  const previousOpp = await Opportunity.findById(opportunityId).select('stageId').lean();
+  const previousStageId = previousOpp?.stageId?.toString() || null;
+
   const updateData: Record<string, unknown> = { stageId };
   if (pipelineId) {
     updateData.pipelineId = pipelineId;
@@ -435,5 +472,18 @@ export async function moveOpportunityToStage(
 
   if (!opp) return null;
 
-  return toOpportunityResponse(opp as unknown as PopulatedOpportunity);
+  const response = toOpportunityResponse(opp as unknown as PopulatedOpportunity);
+
+  // Emit webhook events
+  safeEmitWebhookEvent('opportunity', 'updated', response);
+
+  if (previousStageId !== stageId) {
+    safeEmitWebhookEvent('opportunity', 'stage_changed', {
+      opportunity: response,
+      previousStageId,
+      newStageId: stageId,
+    });
+  }
+
+  return response;
 }
