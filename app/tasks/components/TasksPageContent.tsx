@@ -7,6 +7,7 @@ import { TasksTable } from './TasksTable';
 import { TasksSearch } from './TasksSearch';
 import { CreateTaskButton } from './CreateTaskButton';
 import { TasksKanban } from './TasksKanban';
+import { TasksFilters } from './TasksFilters';
 
 interface Project {
   id: string;
@@ -17,11 +18,21 @@ interface Project {
 type TaskStatusFilter = 'all' | 'open' | 'in_progress' | 'completed' | 'cancelled';
 type ViewMode = 'table' | 'kanban';
 
+interface StatusCounts {
+  all: number;
+  open: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+}
+
 interface TasksPageContentProps {
   initialPage?: number;
   initialSearch?: string;
   initialProjectId?: string | null;
   initialStatus?: string | null;
+  initialAssigneeId?: string;
+  initialPriorityId?: string;
 }
 
 const statusLabels: Record<TaskStatusFilter, string> = {
@@ -37,6 +48,8 @@ export function TasksPageContent({
   initialSearch = '',
   initialProjectId = null,
   initialStatus = null,
+  initialAssigneeId,
+  initialPriorityId,
 }: TasksPageContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,11 +59,45 @@ export function TasksPageContent({
   const [selectedStatus, setSelectedStatus] = useState<TaskStatusFilter>(
     (initialStatus as TaskStatusFilter) || 'all'
   );
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [statusCounts, setStatusCounts] = useState<StatusCounts | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+
+  const currentSearch = searchParams.get('search') || initialSearch;
+  const currentAssigneeId = searchParams.get('assigneeId') || initialAssigneeId;
+  const currentPriorityId = searchParams.get('priorityId') || initialPriorityId;
+
+  // Load status counts
+  const fetchStatusCounts = useCallback(async () => {
+    try {
+      const body: Record<string, unknown> = {};
+      if (currentSearch) body.search = currentSearch;
+      if (selectedProjectId) {
+        body.entityType = 'project';
+        body.entityId = selectedProjectId;
+      }
+
+      const response = await fetch('/api/tasks/counts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStatusCounts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching status counts:', error);
+    }
+  }, [currentSearch, selectedProjectId]);
+
+  useEffect(() => {
+    fetchStatusCounts();
+  }, [fetchStatusCounts]);
 
   // Load projects
   useEffect(() => {
@@ -136,7 +183,27 @@ export function TasksPageContent({
     }
   }, [newProjectName, isCreatingProject, handleProjectChange]);
 
-  const currentSearch = searchParams.get('search') || initialSearch;
+  const handleFilterChange = useCallback((filters: {
+    assigneeId?: string;
+    priorityId?: string;
+  }) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    if (filters.assigneeId) {
+      newParams.set('assigneeId', filters.assigneeId);
+    } else {
+      newParams.delete('assigneeId');
+    }
+
+    if (filters.priorityId) {
+      newParams.set('priorityId', filters.priorityId);
+    } else {
+      newParams.delete('priorityId');
+    }
+
+    newParams.delete('page');
+    router.push(`?${newParams.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
   if (isLoading) {
     return (
@@ -243,22 +310,32 @@ export function TasksPageContent({
                 : 'Все задачи'}
             </h2>
 
-            {/* Status Filter */}
-            <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
-              {(Object.keys(statusLabels) as TaskStatusFilter[]).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => handleStatusChange(status)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    selectedStatus === status
-                      ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
-                  }`}
-                >
-                  {statusLabels[status]}
-                </button>
-              ))}
-            </div>
+            {/* Status Filter - only show in table mode */}
+            {viewMode === 'table' && (
+              <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                {(Object.keys(statusLabels) as TaskStatusFilter[]).map((status) => {
+                  const count = statusCounts?.[status] ?? null;
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(status)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        selectedStatus === status
+                          ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'
+                      }`}
+                    >
+                      {statusLabels[status]}
+                      {count !== null && count > 0 && (
+                        <span className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500">
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -287,6 +364,11 @@ export function TasksPageContent({
                 <SquareKanban className="w-4 h-4" />
               </button>
             </div>
+            <TasksFilters
+              assigneeId={currentAssigneeId}
+              priorityId={currentPriorityId}
+              onFilterChange={handleFilterChange}
+            />
             <TasksSearch initialSearch={currentSearch} />
             <CreateTaskButton projects={projects} defaultProjectId={selectedProjectId} />
           </div>
@@ -294,17 +376,22 @@ export function TasksPageContent({
 
         {/* Tasks View */}
         {viewMode === 'table' ? (
-          <TasksTable
-            initialPage={initialPage}
-            initialSearch={currentSearch}
-            projectId={selectedProjectId}
-            status={selectedStatus === 'all' ? null : selectedStatus}
-          />
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
+            <TasksTable
+              initialPage={initialPage}
+              initialSearch={currentSearch}
+              projectId={selectedProjectId}
+              status={selectedStatus === 'all' ? null : selectedStatus}
+              assigneeId={currentAssigneeId}
+              priorityId={currentPriorityId}
+            />
+          </div>
         ) : (
           <TasksKanban
             initialSearch={currentSearch}
             projectId={selectedProjectId}
-            status={null}
+            assigneeId={currentAssigneeId}
+            priorityId={currentPriorityId}
           />
         )}
       </div>

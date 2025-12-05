@@ -9,6 +9,7 @@ import {
   TaskPriority,
   TaskAssignee,
   LinkedEntityResponse,
+  TaskStatusCounts,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
 // Import models for populate
@@ -375,4 +376,58 @@ export async function getTasksByOwner(ownerId: string): Promise<TaskResponse[]> 
   );
 
   return tasksWithLinked;
+}
+
+export async function getTaskStatusCounts(filters: Omit<TaskFilters, 'status' | 'page' | 'limit'>): Promise<TaskStatusCounts> {
+  await dbConnect();
+
+  const { search, priorityId, assigneeId, ownerId, entityType, entityId, dueDateFrom, dueDateTo } = filters;
+
+  const baseQuery: Record<string, unknown> = {};
+
+  if (search) {
+    baseQuery.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  if (priorityId) {
+    baseQuery.priorityId = priorityId;
+  }
+
+  if (assigneeId) {
+    baseQuery.assigneeId = assigneeId;
+  }
+
+  if (ownerId) {
+    baseQuery.ownerId = ownerId;
+  }
+
+  if (entityType && entityId) {
+    baseQuery['linkedTo.entityType'] = entityType;
+    baseQuery['linkedTo.entityId'] = entityId;
+  } else if (entityType) {
+    baseQuery['linkedTo.entityType'] = entityType;
+  }
+
+  if (dueDateFrom || dueDateTo) {
+    baseQuery.dueDate = {};
+    if (dueDateFrom) {
+      (baseQuery.dueDate as Record<string, unknown>).$gte = new Date(dueDateFrom);
+    }
+    if (dueDateTo) {
+      (baseQuery.dueDate as Record<string, unknown>).$lte = new Date(dueDateTo);
+    }
+  }
+
+  const [all, open, in_progress, completed, cancelled] = await Promise.all([
+    Task.countDocuments(baseQuery),
+    Task.countDocuments({ ...baseQuery, status: 'open' }),
+    Task.countDocuments({ ...baseQuery, status: 'in_progress' }),
+    Task.countDocuments({ ...baseQuery, status: 'completed' }),
+    Task.countDocuments({ ...baseQuery, status: 'cancelled' }),
+  ]);
+
+  return { all, open, in_progress, completed, cancelled };
 }

@@ -59,6 +59,8 @@ interface TasksTableProps {
   initialSearch?: string;
   projectId?: string | null;
   status?: string | null;
+  assigneeId?: string;
+  priorityId?: string;
 }
 
 const statusConfig = {
@@ -68,7 +70,7 @@ const statusConfig = {
   cancelled: { icon: XCircle, label: 'Отменена', color: 'text-red-500' },
 };
 
-export function TasksTable({ initialPage = 1, initialSearch = '', projectId, status }: TasksTableProps) {
+export function TasksTable({ initialPage = 1, initialSearch = '', projectId, status, assigneeId, priorityId }: TasksTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -118,6 +120,8 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
         body.entityId = projectId;
       }
       if (status) body.status = status;
+      if (assigneeId) body.assigneeId = assigneeId;
+      if (priorityId) body.priorityId = priorityId;
 
       const response = await fetch('/api/tasks/search', {
         method: 'POST',
@@ -134,7 +138,7 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
     } finally {
       setLoading(false);
     }
-  }, [projectId, status]);
+  }, [projectId, status, assigneeId, priorityId]);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -394,14 +398,7 @@ export function TasksTable({ initialPage = 1, initialSearch = '', projectId, sta
                     </td>
                     <td className="px-4 py-1.5">
                       {task.priority ? (
-                        <Badge
-                          style={{
-                            backgroundColor: task.priority.color
-                              ? `${task.priority.color}20`
-                              : '#71717a20',
-                            color: task.priority.color || '#71717a',
-                          }}
-                        >
+                        <Badge color={task.priority.color || '#71717a'}>
                           {task.priority.name}
                         </Badge>
                       ) : (
