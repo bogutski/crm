@@ -37,7 +37,11 @@ async function connectDB() {
 
 async function getTestUser() {
   await connectDB();
-  const user = await mongoose.connection.db.collection('users').findOne({});
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('Database not connected');
+  }
+  const user = await db.collection('users').findOne({});
   if (!user) {
     throw new Error('No user found. Run seed script first.');
   }
