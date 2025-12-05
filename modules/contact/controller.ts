@@ -10,6 +10,7 @@ import {
   OwnerResponse,
 } from './types';
 import { connectToDatabase as dbConnect } from '@/lib/mongodb';
+import { normalizePhone } from '@/lib/phone-format';
 // Импортируем DictionaryItem и User чтобы модели были зарегистрированы для populate
 import '@/modules/dictionary/model';
 import '@/modules/user/model';
@@ -148,10 +149,13 @@ export async function getContactById(id: string): Promise<ContactResponse | null
 export async function createContact(data: CreateContactDTO): Promise<ContactResponse> {
   await dbConnect();
 
+  // Нормализуем телефоны (форматируем international)
+  const normalizedPhones = (data.phones || []).map(normalizePhone);
+
   const contact = await Contact.create({
     name: data.name,
     emails: data.emails || [],
-    phones: data.phones || [],
+    phones: normalizedPhones,
     company: data.company,
     position: data.position,
     notes: data.notes,
@@ -178,6 +182,16 @@ export async function updateContact(
   if (data.contactType === null) {
     await Contact.findByIdAndUpdate(id, { $unset: { contactType: 1 } });
     delete updateData.contactType;
+  }
+  // Если ownerId явно null, удаляем поле
+  if (data.ownerId === null) {
+    await Contact.findByIdAndUpdate(id, { $unset: { ownerId: 1 } });
+    delete updateData.ownerId;
+  }
+
+  // Нормализуем телефоны если они обновляются
+  if (updateData.phones) {
+    updateData.phones = updateData.phones.map(normalizePhone);
   }
 
   const contact = await Contact.findByIdAndUpdate(

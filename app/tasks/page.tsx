@@ -4,7 +4,14 @@ import { Header } from '../components/Header';
 import { TasksPageContent } from './components/TasksPageContent';
 
 interface TasksPageProps {
-  searchParams: Promise<{ page?: string; search?: string; project?: string; status?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+    project?: string;
+    status?: string;
+    assigneeId?: string;
+    priorityId?: string;
+  }>;
 }
 
 export default async function TasksPage({ searchParams }: TasksPageProps) {
@@ -26,6 +33,8 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
           initialSearch={params.search || ''}
           initialProjectId={params.project || null}
           initialStatus={params.status || null}
+          initialAssigneeId={params.assigneeId}
+          initialPriorityId={params.priorityId}
         />
       </main>
     </div>

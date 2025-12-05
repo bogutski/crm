@@ -128,15 +128,7 @@ export function ChatContactInfo({ contactId }: ChatContactInfoProps) {
               {contact.name}
             </h3>
             {contact.contactType && (
-              <Badge
-                className="mt-1"
-                style={{
-                  backgroundColor: contact.contactType.color
-                    ? `${contact.contactType.color}20`
-                    : '#71717a20',
-                  color: contact.contactType.color || '#71717a',
-                }}
-              >
+              <Badge className="mt-1" color={contact.contactType.color || '#71717a'}>
                 {contact.contactType.name}
               </Badge>
             )}
@@ -244,13 +236,7 @@ export function ChatContactInfo({ contactId }: ChatContactInfoProps) {
                     )}
                   </div>
                   {opp.stage && (
-                    <Badge
-                      className="mt-1"
-                      style={{
-                        backgroundColor: `${opp.stage.color}20`,
-                        color: opp.stage.color,
-                      }}
-                    >
+                    <Badge className="mt-1" color={opp.stage.color}>
                       {opp.stage.name}
                     </Badge>
                   )}

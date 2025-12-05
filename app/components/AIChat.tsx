@@ -1,33 +1,88 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export function AIChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [dialogueId, setDialogueId] = useState<string | null>(null);
   const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, status } = useChat({
-    api: '/api/chat',
-    body: { dialogueId },
-    onResponse: (response) => {
-      const newDialogueId = response.headers.get('X-Dialogue-ID');
-      if (newDialogueId) setDialogueId(newDialogueId);
-    },
-  });
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const isLoading = status === 'submitted' || status === 'streaming';
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    sendMessage({ text: input });
-    setInput('');
-  };
+    const userMessage: ChatMessage = {
+      id: Math.random().toString(),
+      role: 'user',
+      content: input.trim(),
+    };
 
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          dialogueId,
+        }),
+        credentials: 'include',
+      });
+
+      const newDialogueId = response.headers.get('X-Dialogue-ID');
+      if (newDialogueId) setDialogueId(newDialogueId);
+
+      if (response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantContent = '';
+        const assistantId = Math.random().toString();
+
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, role: 'assistant', content: '' },
+        ]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          assistantContent += chunk;
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: assistantContent } : m
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[AIChat] Error sending message:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isOpen) {
     return (
@@ -114,7 +169,7 @@ export function AIChat() {
           </div>
         ))}
 
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start">
             <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-2">
               <div className="flex gap-1">
@@ -126,6 +181,7 @@ export function AIChat() {
           </div>
         )}
 
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

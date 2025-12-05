@@ -84,3 +84,11 @@ export interface TaskFilters {
   page?: number;
   limit?: number;
 }
+
+export interface TaskStatusCounts {
+  all: number;
+  open: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+}

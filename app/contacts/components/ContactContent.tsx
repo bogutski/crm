@@ -230,15 +230,7 @@ export function ContactContent({
                   {contact.name}
                 </h1>
                 {contact.contactType && (
-                  <Badge
-                    className="mt-1"
-                    style={{
-                      backgroundColor: contact.contactType.color
-                        ? `${contact.contactType.color}20`
-                        : '#71717a20',
-                      color: contact.contactType.color || '#71717a',
-                    }}
-                  >
+                  <Badge className="mt-1" color={contact.contactType.color || '#71717a'}>
                     {contact.contactType.name}
                   </Badge>
                 )}
@@ -263,9 +255,11 @@ export function ContactContent({
             </div>
           </div>
 
-          {/* Contact Info Table */}
-          <table className="w-full text-sm">
-            <tbody>
+          {/* Contact Info and Notes */}
+          <div className="flex gap-6">
+            {/* Contact Info Table */}
+            <table className="text-sm flex-shrink-0">
+              <tbody>
               {/* Emails */}
               <tr>
                 <td className="py-1 pr-4 text-zinc-500 dark:text-zinc-400 align-top w-32">
@@ -307,15 +301,15 @@ export function ContactContent({
                     <div className="space-y-1">
                       {contact.phones.map((phone, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          {phone.isPrimary && (
-                            <Star className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" />
-                          )}
                           <a
                             href={`tel:${phone.e164}`}
                             className="text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             {phone.international}
                           </a>
+                          {phone.isPrimary && (
+                            <Star className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" />
+                          )}
                           {phone.isVerified && (
                             <CheckCircle className="w-3.5 h-3.5 text-green-500" />
                           )}
@@ -397,6 +391,19 @@ export function ContactContent({
             </tbody>
           </table>
 
+            {/* Notes Column */}
+            {contact.notes && (
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+                  Заметки
+                </div>
+                <p className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap">
+                  {contact.notes}
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Opportunities */}
           {opportunities.length > 0 && (
             <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -446,14 +453,7 @@ export function ContactContent({
                           </td>
                           <td className="px-4 py-1.5">
                             {opp.priority ? (
-                              <Badge
-                                style={{
-                                  backgroundColor: opp.priority.color
-                                    ? `${opp.priority.color}20`
-                                    : '#71717a20',
-                                  color: opp.priority.color || '#71717a',
-                                }}
-                              >
+                              <Badge color={opp.priority.color || '#71717a'}>
                                 {opp.priority.name}
                               </Badge>
                             ) : (
@@ -462,14 +462,7 @@ export function ContactContent({
                           </td>
                           <td className="px-4 py-1.5">
                             {opp.stage ? (
-                              <Badge
-                                style={{
-                                  backgroundColor: opp.stage.color
-                                    ? `${opp.stage.color}20`
-                                    : '#71717a20',
-                                  color: opp.stage.color || '#71717a',
-                                }}
-                              >
+                              <Badge color={opp.stage.color || '#71717a'}>
                                 {opp.stage.name}
                               </Badge>
                             ) : (
@@ -490,17 +483,6 @@ export function ContactContent({
             </div>
           )}
 
-          {/* Notes */}
-          {contact.notes && (
-            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-              <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
-                Заметки
-              </div>
-              <p className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap">
-                {contact.notes}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Right Side - Timeline (resizable) */}

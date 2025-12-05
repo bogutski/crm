@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function AuthLoginPage() {
+function LoginRedirect() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -15,8 +15,16 @@ export default function AuthLoginPage() {
   }, [router, searchParams]);
 
   return (
+    <div className="text-zinc-600 dark:text-zinc-400">Перенаправление...</div>
+  );
+}
+
+export default function AuthLoginPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950">
-      <div className="text-zinc-600 dark:text-zinc-400">Перенаправление...</div>
+      <Suspense fallback={<div className="text-zinc-600 dark:text-zinc-400">Загрузка...</div>}>
+        <LoginRedirect />
+      </Suspense>
     </div>
   );
 }

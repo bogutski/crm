@@ -39,6 +39,7 @@ export const createContactSchema = z.object({
   notes: z.string().optional().describe('Заметки'),
   contactType: z.string().optional().describe('ID типа контакта из словаря'),
   source: z.string().optional().describe('ID источника из словаря'),
+  ownerId: z.string().optional().describe('ID владельца контакта'),
 }).describe('Данные для создания контакта');
 
 export const updateContactSchema = z.object({
@@ -50,6 +51,7 @@ export const updateContactSchema = z.object({
   notes: z.string().optional().describe('Заметки'),
   contactType: z.string().optional().nullable().describe('ID типа контакта из словаря'),
   source: z.string().optional().nullable().describe('ID источника из словаря'),
+  ownerId: z.string().optional().nullable().describe('ID владельца контакта'),
 }).describe('Данные для обновления контакта');
 
 export const contactFiltersSchema = z.object({
@@ -117,6 +119,7 @@ export const contactFormSchema = z.object({
   notes: z.string().optional(),
   contactType: z.string().optional(),
   source: z.string().optional(),
+  ownerId: z.string().optional(),
 });
 
 export type ContactFormData = z.infer<typeof contactFormSchema>;

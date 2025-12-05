@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { apiAuth } from '@/lib/api-auth';
 import { getDialogue, updateDialogueStatus, deleteDialogue } from '@/modules/ai-dialogue';
 
-// GET /api/dialogues/[id] - Получить конкретный диалог
+// GET /api/ai-dialogues/[id] - Получить конкретный диалог
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = authResult.userId || authResult.apiToken?.userId;
+    const userId = authResult.userId;
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 401 });
     }
@@ -45,7 +45,7 @@ export async function GET(
   }
 }
 
-// PATCH /api/dialogues/[id] - Обновить статус диалога
+// PATCH /api/ai-dialogues/[id] - Обновить статус диалога
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -60,7 +60,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = authResult.userId || authResult.apiToken?.userId;
+    const userId = authResult.userId;
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 401 });
     }
@@ -96,7 +96,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/dialogues/[id] - Удалить диалог
+// DELETE /api/ai-dialogues/[id] - Удалить диалог
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -111,7 +111,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = authResult.userId || authResult.apiToken?.userId;
+    const userId = authResult.userId;
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 401 });
     }

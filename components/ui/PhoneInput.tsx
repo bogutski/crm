@@ -12,7 +12,7 @@ import 'react-international-phone/style.css';
 
 export interface PhoneInputProps {
   value?: string;
-  onChange: (value: string) => void;
+  onChange: (e164: string) => void;
   defaultCountry?: CountryIso2;
   placeholder?: string;
   disabled?: boolean;
@@ -20,6 +20,11 @@ export interface PhoneInputProps {
   name?: string;
 }
 
+/**
+ * Компонент ввода телефона с выбором страны.
+ * Возвращает только e164 формат (например: +12133734253).
+ * Форматирование в international формат происходит на бэкенде.
+ */
 export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
   function PhoneInput(
     {
@@ -33,12 +38,13 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
     },
     ref
   ) {
-    const { inputValue, handlePhoneValueChange, inputRef, country, setCountry } =
+    const { inputValue, handlePhoneValueChange, country, setCountry } =
       usePhoneInput({
         defaultCountry,
         value: value || '',
         countries: defaultCountries,
         onChange: (data) => {
+          // Передаём только e164 - форматирование на бэкенде
           onChange(data.phone);
         },
       });

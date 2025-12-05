@@ -1,6 +1,6 @@
-import { ISystemSettings, AIProvider, IAIProviderConfig, IAISettings } from './model';
+import { ISystemSettings, AIProvider, IAIProviderConfig, IAISettings, IAIToolsSettings, IMCPToolsSettings } from './model';
 
-export type { ISystemSettings, AIProvider, IAIProviderConfig, IAISettings };
+export type { ISystemSettings, AIProvider, IAIProviderConfig, IAISettings, IAIToolsSettings, IMCPToolsSettings };
 
 export type CurrencyPosition = 'before' | 'after';
 
@@ -32,6 +32,12 @@ export interface SystemSettingsResponse {
       openai?: { enabled: boolean; model: string; hasApiKey: boolean };
       anthropic?: { enabled: boolean; model: string; hasApiKey: boolean };
       google?: { enabled: boolean; model: string; hasApiKey: boolean };
+    };
+    tools?: {
+      enabled?: string[];
+    };
+    mcpTools?: {
+      enabled?: string[];
     };
   };
   updatedAt: Date;

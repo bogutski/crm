@@ -10,6 +10,16 @@ export interface IAIProviderConfig {
   model: string; // например, 'gpt-4o-mini', 'claude-3-5-sonnet', 'gemini-pro'
 }
 
+// Интерфейс настроек AI инструментов
+export interface IAIToolsSettings {
+  enabled?: string[]; // Список включенных инструментов (если не указан - все включены)
+}
+
+// Интерфейс настроек MCP инструментов
+export interface IMCPToolsSettings {
+  enabled?: string[]; // Список включенных MCP инструментов (если не указан - все включены)
+}
+
 // Интерфейс AI настроек
 export interface IAISettings {
   activeProvider?: AIProvider; // активный провайдер
@@ -18,6 +28,8 @@ export interface IAISettings {
     anthropic?: IAIProviderConfig;
     google?: IAIProviderConfig;
   };
+  tools?: IAIToolsSettings; // Настройки AI инструментов
+  mcpTools?: IMCPToolsSettings; // Настройки MCP инструментов
 }
 
 // Интерфейс системных настроек
@@ -62,6 +74,28 @@ const AIProviderConfigSchema = new Schema<IAIProviderConfig>(
   { _id: false }
 );
 
+// Схема настроек AI инструментов
+const AIToolsSettingsSchema = new Schema<IAIToolsSettings>(
+  {
+    enabled: {
+      type: [String],
+      default: undefined, // undefined = все инструменты включены
+    },
+  },
+  { _id: false }
+);
+
+// Схема настроек MCP инструментов
+const MCPToolsSettingsSchema = new Schema<IMCPToolsSettings>(
+  {
+    enabled: {
+      type: [String],
+      default: undefined, // undefined = все инструменты включены
+    },
+  },
+  { _id: false }
+);
+
 // Схема AI настроек
 const AISettingsSchema = new Schema<IAISettings>(
   {
@@ -73,6 +107,14 @@ const AISettingsSchema = new Schema<IAISettings>(
       openai: AIProviderConfigSchema,
       anthropic: AIProviderConfigSchema,
       google: AIProviderConfigSchema,
+    },
+    tools: {
+      type: AIToolsSettingsSchema,
+      default: undefined,
+    },
+    mcpTools: {
+      type: MCPToolsSettingsSchema,
+      default: undefined,
     },
   },
   { _id: false }

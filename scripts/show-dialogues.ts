@@ -4,12 +4,12 @@ import { resolve } from 'path';
 // Load .env.local first
 config({ path: resolve(process.cwd(), '.env.local') });
 
-import { connectDB } from '../lib/mongodb';
-import { AIDialogue } from '../modules/ai-dialogue/model';
+import { connectToDatabase } from '../lib/mongodb';
+import AIDialogue from '../modules/ai-dialogue/model';
 
 async function showDialogues() {
   try {
-    await connectDB();
+    await connectToDatabase();
 
     console.log('\n=== AI Assistant Dialogues (ai_assistant_dialogues) ===\n');
 
@@ -35,7 +35,7 @@ async function showDialogues() {
 
         if (dialogue.messages.length > 0) {
           console.log('\n💬 Messages:');
-          dialogue.messages.forEach((msg, idx) => {
+          dialogue.messages.forEach((msg: { role: string; content: string; metadata?: { tokens?: { total?: number } } }, idx: number) => {
             const preview = msg.content.substring(0, 100);
             const truncated = msg.content.length > 100 ? '...' : '';
             console.log(`  ${idx + 1}. [${msg.role}] ${preview}${truncated}`);

@@ -3,6 +3,7 @@ export type { ISystemSettings, AIProvider, IAIProviderConfig, IAISettings } from
 
 export {
   getSystemSettings,
+  getSystemSettingsInternal,
   updateSystemSettings,
   updateAIProvider,
   setActiveAIProvider,

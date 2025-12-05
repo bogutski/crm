@@ -354,14 +354,7 @@ export function ContactsTable({
                   </td>
                   <td className="px-4 py-1.5">
                     {contact.contactType ? (
-                      <Badge
-                        style={{
-                          backgroundColor: contact.contactType.color
-                            ? `${contact.contactType.color}20`
-                            : '#71717a20',
-                          color: contact.contactType.color || '#71717a',
-                        }}
-                      >
+                      <Badge color={contact.contactType.color || '#71717a'}>
                         {contact.contactType.name}
                       </Badge>
                     ) : (
@@ -372,23 +365,11 @@ export function ContactsTable({
                     {(() => {
                       const sourceData = getSourceById(contact.source);
                       return sourceData ? (
-                        <Badge
-                          style={{
-                            backgroundColor: sourceData.color
-                              ? `${sourceData.color}20`
-                              : '#3b82f620',
-                            color: sourceData.color || '#3b82f6',
-                          }}
-                        >
+                        <Badge color={sourceData.color || '#3b82f6'}>
                           {sourceData.name}
                         </Badge>
                       ) : contact.source ? (
-                        <Badge
-                          style={{
-                            backgroundColor: '#3b82f620',
-                            color: '#3b82f6',
-                          }}
-                        >
+                        <Badge color="#3b82f6">
                           {contact.source}
                         </Badge>
                       ) : (

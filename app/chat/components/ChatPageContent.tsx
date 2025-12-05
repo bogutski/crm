@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MessageSquare } from 'lucide-react';
 import { ResizablePanel } from '@/app/components/ResizablePanel';
 import { ChatContactList, ChatContact } from './ChatContactList';
@@ -8,10 +9,20 @@ import { ChatContactInfo } from './ChatContactInfo';
 import { Timeline } from '@/app/components/Timeline';
 
 export function ChatPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedContact, setSelectedContact] = useState<ChatContact | null>(null);
+
+  // Get contactId from URL on mount
+  const contactIdFromUrl = searchParams.get('contact');
 
   const handleSelectContact = useCallback(async (contact: ChatContact) => {
     setSelectedContact(contact);
+
+    // Update URL with selected contact
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('contact', contact.contactId);
+    router.replace(`/chat?${params.toString()}`, { scroll: false });
 
     // Mark messages as read when selecting a contact
     if (contact.unreadCount > 0) {
@@ -27,7 +38,7 @@ export function ChatPageContent() {
         console.error('Error marking messages as read:', error);
       }
     }
-  }, []);
+  }, [router, searchParams]);
 
   return (
     <main className="flex-1 flex min-h-0 overflow-hidden">
@@ -43,6 +54,7 @@ export function ChatPageContent() {
         <ChatContactList
           selectedContactId={selectedContact?.contactId || null}
           onSelectContact={handleSelectContact}
+          initialContactId={contactIdFromUrl}
         />
       </ResizablePanel>
 

@@ -7,7 +7,7 @@ const navItems = [
   { href: '/contacts', label: 'Контакты' },
   { href: '/opportunities', label: 'Сделки' },
   { href: '/tasks', label: 'Задачи' },
-  { href: '/ai-dialogues', label: 'AI Ассистент' },
+  { href: '/ai-assistant', label: 'AI Ассистент' },
   { href: '/chat', label: 'Чат' },
 ];
 
