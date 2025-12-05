@@ -3,18 +3,27 @@ import mongoose, { Schema, Document } from 'mongoose';
 // Тип роли в сообщении
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 
+// Интерфейс для вызова инструмента
+export interface IToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+  result?: any;
+  error?: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  startedAt?: Date;
+  completedAt?: Date;
+}
+
 // Интерфейс для одного сообщения в диалоге
 export interface IDialogueMessage {
+  _id?: mongoose.Types.ObjectId;
   role: MessageRole;
   content: string;
   timestamp: Date;
-  // Для tool вызовов
-  toolCalls?: {
-    id: string;
-    name: string;
-    arguments: Record<string, any>;
-  }[];
-  // Для tool результатов
+  // Для tool вызовов с результатами
+  toolCalls?: IToolCall[];
+  // Для tool результатов (legacy)
   toolCallId?: string;
   // Метаданные
   metadata?: {
@@ -90,6 +99,15 @@ const DialogueMessageSchema = new Schema<IDialogueMessage>(
       id: String,
       name: String,
       arguments: Schema.Types.Mixed,
+      result: Schema.Types.Mixed,
+      error: String,
+      status: {
+        type: String,
+        enum: ['pending', 'running', 'completed', 'error'],
+        default: 'completed',
+      },
+      startedAt: Date,
+      completedAt: Date,
     }],
     toolCallId: String,
     metadata: {
@@ -102,7 +120,7 @@ const DialogueMessageSchema = new Schema<IDialogueMessage>(
       error: String,
     },
   },
-  { _id: false }
+  { _id: true }
 );
 
 // Схема диалога

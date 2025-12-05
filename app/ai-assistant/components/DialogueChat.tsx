@@ -7,6 +7,7 @@ import { Settings } from 'lucide-react';
 import { useAIChat } from '@/lib/socket/client';
 import { useSocket } from '@/lib/socket/client';
 import { MarkdownMessage } from './MarkdownMessage';
+import { ToolCallDisplay } from './ToolCallDisplay';
 
 interface DialogueChatProps {
   dialogueId: string | null;
@@ -36,6 +37,7 @@ export function DialogueChat({ dialogueId, onDialogueUpdate, showInputWhenEmpty 
     messages,
     setMessages,
     isStreaming,
+    isWaitingForResponse,
     error,
     sendMessage,
     loadHistory,
@@ -93,7 +95,7 @@ export function DialogueChat({ dialogueId, onDialogueUpdate, showInputWhenEmpty 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming || !hasValidConnection || !isConnected) return;
+    if (!input.trim() || isStreaming || isWaitingForResponse || !hasValidConnection || !isConnected) return;
 
     const messageText = input;
     setInput('');
@@ -160,11 +162,11 @@ export function DialogueChat({ dialogueId, onDialogueUpdate, showInputWhenEmpty 
             onChange={(e) => setInput(e.target.value)}
             placeholder={isConnected ? "Напишите сообщение..." : "Подключение..."}
             className="flex-1 px-4 py-3 text-sm border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isStreaming || !isConnected}
+            disabled={isStreaming || isWaitingForResponse || !isConnected}
           />
           <Button
             type="submit"
-            disabled={isStreaming || !input.trim() || !isConnected}
+            disabled={isStreaming || isWaitingForResponse || !input.trim() || !isConnected}
             className="px-6"
           >
             <svg
@@ -322,23 +324,57 @@ export function DialogueChat({ dialogueId, onDialogueUpdate, showInputWhenEmpty 
                     {message.content}
                   </p>
                 ) : (
-                  <MarkdownMessage content={message.content} />
+                  <>
+                    {message.toolCalls && message.toolCalls.length > 0 && (
+                      <ToolCallDisplay toolCalls={message.toolCalls} />
+                    )}
+                    <MarkdownMessage content={message.content} />
+                  </>
                 )}
               </div>
             </div>
           ))}
 
-          {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
+          {/* Показываем спиннер когда ожидаем ответ */}
+          {isWaitingForResponse && (
             <div className="flex justify-start">
               <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl px-4 py-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <span className="text-xs text-zinc-400">Обработка...</span>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Показываем индикатор когда идёт стриминг и есть tool calls без финального текста */}
+          {isStreaming && !isWaitingForResponse && (() => {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg?.role !== 'assistant') return null;
+
+            const hasToolCalls = lastMsg.toolCalls && lastMsg.toolCalls.length > 0;
+            const hasRunningTools = lastMsg.toolCalls?.some(tc => tc.status === 'running');
+            const hasNoContent = !lastMsg.content || lastMsg.content.trim() === '';
+
+            // Показываем спиннер если:
+            // 1. Есть running tools (инструмент выполняется)
+            // 2. ИЛИ есть tool calls но нет текста (AI ещё думает после получения результатов)
+            if (hasRunningTools || (hasToolCalls && hasNoContent)) {
+              return (
+                <div className="flex justify-start mt-2">
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <div className="w-3 h-3 border-2 border-zinc-300 border-t-zinc-500 rounded-full animate-spin"></div>
+                    <span>{hasRunningTools ? 'Выполняю запрос...' : 'Анализирую данные...'}</span>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           <div ref={messagesEndRef} />
         </div>

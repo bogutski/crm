@@ -11,28 +11,35 @@ export const INTERNAL_USER_TOKEN = '__internal_user__';
 
 // Tool definitions for MCP
 export const MCP_TOOLS = [
-  // ==================== КОНТАКТЫ ====================
+  // ==================== КОНТАКТЫ (Клиенты, Лиды, Покупатели) ====================
   {
     name: 'search_contacts',
-    description: 'Поиск контактов в CRM по имени, email, телефону или компании.',
+    description: 'Поиск клиентов/лидов в CRM. Контакты — это потенциальные или текущие клиенты (не сотрудники!). Поиск по имени, email, телефону, компании, адресу.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         query: {
           type: 'string',
-          description: 'Поисковый запрос (имя, email, телефон или компания)',
+          description: 'Поисковый запрос (имя, email, телефон, компания или адрес)',
+        },
+        city: {
+          type: 'string',
+          description: 'Фильтр по городу',
+        },
+        country: {
+          type: 'string',
+          description: 'Фильтр по коду страны ISO (RU, US, KZ и т.д.) - ищет в адресах и телефонах',
         },
         limit: {
           type: 'number',
           description: 'Максимальное количество результатов (по умолчанию: 10)',
         },
       },
-      required: ['query'],
     },
   },
   {
     name: 'get_contact_details',
-    description: 'Получить подробную информацию о контакте по ID.',
+    description: 'Подробная карточка клиента. Вся информация о контакте: данные, история взаимодействий, связанные сделки.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -46,7 +53,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'create_contact',
-    description: 'Создать новый контакт в CRM.',
+    description: 'Добавить нового клиента/лида. Создаёт карточку контакта с данными (имя, компания, телефон, email, адрес).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -70,6 +77,18 @@ export const MCP_TOOLS = [
           type: 'string',
           description: 'Номер телефона',
         },
+        address: {
+          type: 'object',
+          description: 'Адрес контакта',
+          properties: {
+            line1: { type: 'string', description: 'Улица, дом' },
+            line2: { type: 'string', description: 'Квартира, офис' },
+            city: { type: 'string', description: 'Город' },
+            state: { type: 'string', description: 'Область/регион' },
+            zip: { type: 'string', description: 'Почтовый индекс' },
+            country: { type: 'string', description: 'Код страны ISO (RU, US, KZ)' },
+          },
+        },
         contactTypeId: {
           type: 'string',
           description: 'ID типа контакта из словаря',
@@ -88,7 +107,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_contact',
-    description: 'Обновить данные контакта.',
+    description: 'Обновить данные клиента. Изменить информацию в карточке контакта.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -117,16 +136,24 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== СДЕЛКИ ====================
+  // ==================== СДЕЛКИ (Продажи, Заказы, Opportunities) ====================
   {
     name: 'search_opportunities',
-    description: 'Поиск сделок в CRM по названию, контакту или стадии.',
+    description: 'Поиск сделок/продаж. Сделки — это потенциальные или активные продажи с суммой и этапом в воронке. Возвращает owner (ответственный менеджер) и stage.isWon для определения успешных сделок.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         query: {
           type: 'string',
           description: 'Поисковый запрос (название или имя контакта)',
+        },
+        contactId: {
+          type: 'string',
+          description: 'Фильтр по ID контакта — показать все сделки этого клиента',
+        },
+        ownerId: {
+          type: 'string',
+          description: 'Фильтр по ID ответственного менеджера',
         },
         stageId: {
           type: 'string',
@@ -135,6 +162,22 @@ export const MCP_TOOLS = [
         pipelineId: {
           type: 'string',
           description: 'Фильтр по ID воронки',
+        },
+        minAmount: {
+          type: 'number',
+          description: 'Минимальная сумма сделки',
+        },
+        maxAmount: {
+          type: 'number',
+          description: 'Максимальная сумма сделки',
+        },
+        closingDateFrom: {
+          type: 'string',
+          description: 'Дата закрытия от (ISO дата, например 2024-01-01)',
+        },
+        closingDateTo: {
+          type: 'string',
+          description: 'Дата закрытия до (ISO дата)',
         },
         limit: {
           type: 'number',
@@ -145,7 +188,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_opportunity_details',
-    description: 'Получить подробную информацию о сделке по ID.',
+    description: 'Подробности сделки. Полная информация: сумма, этап воронки, связанный клиент, история.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -159,7 +202,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_opportunities_stats',
-    description: 'Получить статистику по сделкам: общее количество, сумма, разбивка по стадиям.',
+    description: 'Статистика продаж. Аналитика: количество сделок, общая сумма, распределение по этапам воронки. Включает статистику по менеджерам (byOwner): общее количество сделок, сумма, количество выигранных (won) и их сумма (wonAmount).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -172,7 +215,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'create_opportunity',
-    description: 'Создать новую сделку в CRM.',
+    description: 'Создать сделку/продажу. Новая сделка с привязкой к клиенту и воронке продаж.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -210,7 +253,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_opportunity',
-    description: 'Обновить данные сделки (название, сумму, заметки и т.д.).',
+    description: 'Обновить сделку. Изменить название, сумму, дату закрытия или заметки.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -240,7 +283,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_opportunity_stage',
-    description: 'Переместить сделку на другую стадию воронки.',
+    description: 'Переместить сделку по воронке. Изменить этап продажи (например: "Новая" → "В работе" → "Выиграна").',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -257,10 +300,10 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== ЗАДАЧИ ====================
+  // ==================== ЗАДАЧИ (Дела, To-do, Напоминания) ====================
   {
     name: 'get_tasks_overview',
-    description: 'Получить обзор задач: количество по статусам и список задач.',
+    description: 'Обзор задач/дел. Статистика и список задач: открытые, в работе, выполненные, просроченные. Можно фильтровать по исполнителю, создателю и датам.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -268,6 +311,26 @@ export const MCP_TOOLS = [
           type: 'string',
           enum: ['open', 'in_progress', 'completed', 'cancelled'],
           description: 'Фильтр по статусу задачи',
+        },
+        assigneeId: {
+          type: 'string',
+          description: 'Фильтр по ID исполнителя (на кого назначена задача)',
+        },
+        ownerId: {
+          type: 'string',
+          description: 'Фильтр по ID создателя задачи',
+        },
+        dueDateFrom: {
+          type: 'string',
+          description: 'Срок выполнения от (ISO дата, например 2024-01-01)',
+        },
+        dueDateTo: {
+          type: 'string',
+          description: 'Срок выполнения до (ISO дата)',
+        },
+        overdue: {
+          type: 'boolean',
+          description: 'Показать только просроченные задачи (срок прошёл, задача не завершена)',
         },
         limit: {
           type: 'number',
@@ -278,7 +341,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_task_details',
-    description: 'Получить подробную информацию о задаче по ID.',
+    description: 'Подробности задачи. Описание, срок, приоритет, исполнитель, связанный клиент или сделка.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -292,7 +355,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'create_task',
-    description: 'Создать новую задачу в CRM. Можно привязать к контакту или сделке.',
+    description: 'Создать задачу/напоминание. Новое дело с дедлайном, приоритетом и привязкой к клиенту или сделке.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -326,7 +389,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_task',
-    description: 'Обновить данные задачи (название, описание, срок и т.д.).',
+    description: 'Обновить задачу. Изменить описание, срок выполнения или приоритет.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -356,7 +419,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_task_status',
-    description: 'Изменить статус существующей задачи.',
+    description: 'Изменить статус задачи. Установить: открыта (open), в работе (in_progress), выполнена (completed) или отменена (cancelled).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -375,7 +438,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'delete_task',
-    description: 'Удалить задачу из CRM.',
+    description: 'Удалить задачу. Полное удаление задачи из системы.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -388,10 +451,10 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== ВЗАИМОДЕЙСТВИЯ ====================
+  // ==================== ВЗАИМОДЕЙСТВИЯ (Коммуникации, История общения) ====================
   {
     name: 'search_interactions',
-    description: 'Поиск взаимодействий с контактами (звонки, письма, встречи).',
+    description: 'Поиск коммуникаций. История общения с клиентами: звонки, письма, встречи, сообщения.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -417,7 +480,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'create_interaction',
-    description: 'Записать взаимодействие с контактом (звонок, письмо, встреча и т.д.).',
+    description: 'Записать коммуникацию. Добавить в историю: звонок, письмо, встречу или сообщение с клиентом.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -447,10 +510,10 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== ВОРОНКИ ====================
+  // ==================== ВОРОНКИ (Этапы продаж, Pipeline) ====================
   {
     name: 'get_pipelines',
-    description: 'Получить список всех воронок продаж.',
+    description: 'Список воронок продаж. Все воронки (pipeline) — последовательности этапов для ведения сделок.',
     inputSchema: {
       type: 'object' as const,
       properties: {},
@@ -458,7 +521,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_pipeline_stages',
-    description: 'Получить список стадий воронки.',
+    description: 'Этапы воронки. Все стадии конкретной воронки продаж (например: Новая → Переговоры → Выиграна).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -472,7 +535,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_pipeline_analytics',
-    description: 'Получить аналитику воронки: количество сделок и суммы по стадиям.',
+    description: 'Аналитика воронки. Количество сделок и суммы на каждом этапе — для анализа конверсии.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -484,10 +547,10 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== СПРАВОЧНИКИ ====================
+  // ==================== СПРАВОЧНИКИ (Словари, Настройки) ====================
   {
     name: 'get_dictionaries',
-    description: 'Получить список всех справочников (словарей) системы.',
+    description: 'Список справочников. Все справочники системы: типы контактов, источники, приоритеты задач и др.',
     inputSchema: {
       type: 'object' as const,
       properties: {},
@@ -495,7 +558,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_dictionary_items',
-    description: 'Получить элементы справочника по его коду.',
+    description: 'Элементы справочника. Значения из справочника (например, все приоритеты: низкий, средний, высокий).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -508,10 +571,10 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== КАНАЛЫ ====================
+  // ==================== КАНАЛЫ (Способы связи) ====================
   {
     name: 'get_channels',
-    description: 'Получить список каналов коммуникации (телефон, email, встреча и т.д.).',
+    description: 'Каналы связи. Способы коммуникации с клиентами: телефон, email, мессенджеры, встречи.',
     inputSchema: {
       type: 'object' as const,
       properties: {},
@@ -521,7 +584,7 @@ export const MCP_TOOLS = [
   // ==================== КОНТАКТЫ (дополнительно) ====================
   {
     name: 'delete_contact',
-    description: 'Удалить контакт из CRM.',
+    description: 'Удалить клиента из базы. Полное удаление карточки контакта и связей.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -537,7 +600,7 @@ export const MCP_TOOLS = [
   // ==================== СДЕЛКИ (дополнительно) ====================
   {
     name: 'delete_opportunity',
-    description: 'Удалить сделку из CRM.',
+    description: 'Удалить сделку. Полное удаление сделки из системы.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -551,7 +614,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'archive_opportunity',
-    description: 'Архивировать или разархивировать сделку.',
+    description: 'Архивировать сделку. Скрыть неактивную сделку из основного списка без удаления.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -571,7 +634,7 @@ export const MCP_TOOLS = [
   // ==================== ВЗАИМОДЕЙСТВИЯ (дополнительно) ====================
   {
     name: 'get_interaction_details',
-    description: 'Получить подробную информацию о взаимодействии по ID.',
+    description: 'Детали коммуникации. Полная информация о звонке, письме или встрече.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -585,7 +648,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_interaction',
-    description: 'Обновить данные взаимодействия.',
+    description: 'Обновить запись коммуникации. Изменить тему, содержание или статус.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -612,7 +675,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'delete_interaction',
-    description: 'Удалить взаимодействие из CRM.',
+    description: 'Удалить коммуникацию. Удалить запись из истории общения.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -626,7 +689,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_interaction_stats',
-    description: 'Получить статистику взаимодействий по контакту.',
+    description: 'Статистика коммуникаций. Количество взаимодействий по каналам и направлениям.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -639,10 +702,10 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== ПОЛЬЗОВАТЕЛИ ====================
+  // ==================== ПОЛЬЗОВАТЕЛИ (Менеджеры, Сотрудники, Администраторы) ====================
   {
     name: 'search_users',
-    description: 'Поиск пользователей CRM (для назначения ответственных).',
+    description: 'Поиск сотрудников/менеджеров. Пользователи системы — это сотрудники компании (НЕ клиенты!). Роли: admin, manager, user. Используй для назначения ответственных.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -667,7 +730,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_user_details',
-    description: 'Получить информацию о пользователе по ID.',
+    description: 'Информация о сотруднике. Данные пользователя системы: имя, email, роль, активность.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -681,7 +744,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_user',
-    description: 'Обновить данные пользователя (имя, email, аватар). Не изменяет роли и статус активности.',
+    description: 'Обновить данные сотрудника. Изменить имя, email или аватар пользователя (кроме админов).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -709,7 +772,7 @@ export const MCP_TOOLS = [
   // ==================== ПРОЕКТЫ ====================
   {
     name: 'search_projects',
-    description: 'Поиск проектов в CRM.',
+    description: 'Поиск проектов. Проекты — контейнеры для группировки задач и работ по направлениям.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -735,7 +798,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_project_details',
-    description: 'Получить подробную информацию о проекте по ID.',
+    description: 'Подробности проекта. Описание, статус, дедлайн, владелец и связанные задачи.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -749,7 +812,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'create_project',
-    description: 'Создать новый проект в CRM.',
+    description: 'Создать проект. Новый проект для организации задач и работ.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -780,7 +843,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'update_project',
-    description: 'Обновить данные проекта.',
+    description: 'Обновить проект. Изменить название, описание, статус или дедлайн.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -811,7 +874,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'delete_project',
-    description: 'Удалить проект из CRM.',
+    description: 'Удалить проект. Полное удаление проекта из системы.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -827,7 +890,7 @@ export const MCP_TOOLS = [
   // ==================== ДОПОЛНИТЕЛЬНЫЕ ИНСТРУМЕНТЫ ====================
   {
     name: 'get_tasks_by_contact',
-    description: 'Получить все задачи, привязанные к контакту.',
+    description: 'Задачи по клиенту. Все задачи, связанные с конкретным контактом.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -841,7 +904,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_tasks_by_project',
-    description: 'Получить все задачи, привязанные к проекту.',
+    description: 'Задачи по проекту. Все задачи в рамках конкретного проекта.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -855,7 +918,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_default_pipeline',
-    description: 'Получить воронку по умолчанию со всеми стадиями.',
+    description: 'Основная воронка. Воронка по умолчанию со всеми этапами продаж.',
     inputSchema: {
       type: 'object' as const,
       properties: {},
@@ -863,7 +926,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_pipeline_by_code',
-    description: 'Получить воронку по её коду со всеми стадиями.',
+    description: 'Воронка по коду. Найти воронку по системному коду (например: sales, leads).',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -877,7 +940,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_initial_stage',
-    description: 'Получить начальную стадию воронки.',
+    description: 'Начальный этап воронки. Первая стадия, на которую попадают новые сделки.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -891,7 +954,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_interactions_by_contact',
-    description: 'Получить все взаимодействия с контактом (звонки, письма, встречи).',
+    description: 'История общения с клиентом. Все коммуникации с конкретным контактом: звонки, письма, встречи.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -909,7 +972,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_dictionary_item_by_code',
-    description: 'Получить элемент справочника по коду справочника и коду элемента.',
+    description: 'Найти значение в справочнике. Конкретный элемент по кодам справочника и элемента.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -994,9 +1057,16 @@ export async function handleMCPToolCall(
   switch (name) {
     // ==================== КОНТАКТЫ ====================
     case 'search_contacts': {
-      const { query, limit = 10 } = args as { query: string; limit?: number };
+      const { query, city, country, limit = 10 } = args as {
+        query?: string;
+        city?: string;
+        country?: string;
+        limit?: number;
+      };
       const result = await api('POST', '/api/contacts/search', {
         search: query,
+        city,
+        country,
         limit,
         page: 1,
       }) as { total: number; contacts: Array<{
@@ -1005,7 +1075,8 @@ export async function handleMCPToolCall(
         company?: string;
         position?: string;
         emails?: Array<{ address: string }>;
-        phones?: Array<{ international?: string; e164?: string }>;
+        phones?: Array<{ international?: string; e164?: string; country?: string }>;
+        addresses?: Array<{ city?: string; country?: string; line1?: string }>;
       }> };
 
       return {
@@ -1018,6 +1089,7 @@ export async function handleMCPToolCall(
           position: c.position,
           emails: c.emails?.map((e) => e.address).filter(Boolean) || [],
           phones: c.phones?.map((p) => p.international || p.e164).filter(Boolean) || [],
+          addresses: c.addresses?.map((a) => [a.line1, a.city, a.country].filter(Boolean).join(', ')).filter(Boolean) || [],
         })),
       };
     }
@@ -1033,12 +1105,20 @@ export async function handleMCPToolCall(
     }
 
     case 'create_contact': {
-      const { name, company, position, email, phone, contactTypeId, sourceId, notes } = args as {
+      const { name, company, position, email, phone, address, contactTypeId, sourceId, notes } = args as {
         name: string;
         company?: string;
         position?: string;
         email?: string;
         phone?: string;
+        address?: {
+          line1?: string;
+          line2?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          country?: string;
+        };
         contactTypeId?: string;
         sourceId?: string;
         notes?: string;
@@ -1049,6 +1129,7 @@ export async function handleMCPToolCall(
       if (position) contactData.position = position;
       if (email) contactData.emails = [{ address: email, isPrimary: true }];
       if (phone) contactData.phones = [{ original: phone, isPrimary: true }];
+      if (address) contactData.addresses = [{ ...address, isPrimary: true }];
       if (contactTypeId) contactData.contactTypeId = contactTypeId;
       if (sourceId) contactData.sourceId = sourceId;
       if (notes) contactData.notes = notes;
@@ -1086,35 +1167,50 @@ export async function handleMCPToolCall(
 
     // ==================== СДЕЛКИ ====================
     case 'search_opportunities': {
-      const { query, stageId, pipelineId, limit = 10 } = args as {
+      const { query, contactId, ownerId, stageId, pipelineId, minAmount, maxAmount, closingDateFrom, closingDateTo, limit = 10 } = args as {
         query?: string;
+        contactId?: string;
+        ownerId?: string;
         stageId?: string;
         pipelineId?: string;
+        minAmount?: number;
+        maxAmount?: number;
+        closingDateFrom?: string;
+        closingDateTo?: string;
         limit?: number;
       };
       const result = await api('POST', '/api/opportunities/search', {
         search: query,
+        contactId,
+        ownerId,
         stageId,
         pipelineId,
+        minAmount,
+        maxAmount,
+        closingDateFrom,
+        closingDateTo,
         limit,
         page: 1,
-      }) as { total: number; opportunities: Array<{
+      }) as { total: number; totalAmount: number; opportunities: Array<{
         id: string;
         name: string;
         amount?: number;
-        stage?: { id: string; name: string };
+        stage?: { id: string; name: string; isWon?: boolean; isFinal?: boolean };
         contact?: { id: string; name: string };
+        owner?: { id: string; name: string; email?: string };
       }> };
 
       return {
         success: true,
         total: result.total,
+        totalAmount: result.totalAmount,
         opportunities: result.opportunities.map((o) => ({
           id: o.id,
           name: o.name,
           amount: o.amount,
-          stage: o.stage ? { id: o.stage.id, name: o.stage.name } : null,
+          stage: o.stage ? { id: o.stage.id, name: o.stage.name, isWon: o.stage.isWon, isFinal: o.stage.isFinal } : null,
           contact: o.contact ? { id: o.contact.id, name: o.contact.name } : null,
+          owner: o.owner ? { id: o.owner.id, name: o.owner.name } : null,
         })),
       };
     }
@@ -1206,9 +1302,19 @@ export async function handleMCPToolCall(
 
     // ==================== ЗАДАЧИ ====================
     case 'get_tasks_overview': {
-      const { status, limit = 10 } = args as { status?: string; limit?: number };
+      const { status, assigneeId, ownerId, dueDateFrom, dueDateTo, overdue, limit = 10 } = args as {
+        status?: string;
+        assigneeId?: string;
+        ownerId?: string;
+        dueDateFrom?: string;
+        dueDateTo?: string;
+        overdue?: boolean;
+        limit?: number;
+      };
 
-      const counts = await api('POST', '/api/tasks/counts', {}) as {
+      const filters = { assigneeId, ownerId, dueDateFrom, dueDateTo };
+
+      const counts = await api('POST', '/api/tasks/counts', filters) as {
         open: number;
         in_progress: number;
         completed: number;
@@ -1218,6 +1324,11 @@ export async function handleMCPToolCall(
 
       const result = await api('POST', '/api/tasks/search', {
         status,
+        assigneeId,
+        ownerId,
+        dueDateFrom,
+        dueDateTo,
+        overdue,
         limit,
         page: 1,
       }) as { tasks: Array<{

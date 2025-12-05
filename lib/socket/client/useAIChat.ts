@@ -3,10 +3,20 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSocket } from './SocketContext';
 
+interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  result?: unknown;
+  error?: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  toolCalls?: ToolCall[];
 }
 
 interface UseAIChatOptions {
@@ -24,6 +34,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentStreamRef = useRef<string>('');
@@ -79,6 +90,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       // Запоминаем ID диалога для этого стрима
       activeStreamDialogueIdRef.current = data.dialogueId;
 
+      setIsWaitingForResponse(false);
       setIsStreaming(true);
       setError(null);
       currentStreamRef.current = '';
@@ -135,6 +147,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       if (!isForCurrent) return;
 
       setIsStreaming(false);
+      setIsWaitingForResponse(false);
 
       // Финальное обновление с полным сообщением
       setMessages((prev) =>
@@ -150,6 +163,85 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       activeStreamDialogueIdRef.current = null;
     };
 
+    // Обработка вызова инструмента
+    const handleToolCall = (data: {
+      dialogueId: string;
+      toolCallId: string;
+      toolName: string;
+      args: Record<string, unknown>;
+    }) => {
+      const isForCurrent = isEventForCurrentDialogue(data.dialogueId);
+      console.log('[useAIChat] ai:tool:call received:', {
+        eventDialogueId: data.dialogueId,
+        isForCurrent,
+        toolName: data.toolName,
+      });
+
+      if (!isForCurrent) return;
+
+      // Добавляем tool call к текущему сообщению ассистента
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === streamMessageIdRef.current) {
+            const existingToolCalls = msg.toolCalls || [];
+            return {
+              ...msg,
+              toolCalls: [
+                ...existingToolCalls,
+                {
+                  id: data.toolCallId,
+                  name: data.toolName,
+                  arguments: data.args,
+                  status: 'running' as const,
+                },
+              ],
+            };
+          }
+          return msg;
+        })
+      );
+    };
+
+    // Обработка результата инструмента
+    const handleToolResult = (data: {
+      dialogueId: string;
+      toolCallId: string;
+      result: unknown;
+      error?: string;
+    }) => {
+      const isForCurrent = isEventForCurrentDialogue(data.dialogueId);
+      console.log('[useAIChat] ai:tool:result received:', {
+        eventDialogueId: data.dialogueId,
+        isForCurrent,
+        toolCallId: data.toolCallId,
+        hasError: !!data.error,
+      });
+
+      if (!isForCurrent) return;
+
+      // Обновляем статус и результат tool call
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === streamMessageIdRef.current && msg.toolCalls) {
+            return {
+              ...msg,
+              toolCalls: msg.toolCalls.map((tc) =>
+                tc.id === data.toolCallId
+                  ? {
+                      ...tc,
+                      status: data.error ? 'error' as const : 'completed' as const,
+                      result: data.result,
+                      error: data.error,
+                    }
+                  : tc
+              ),
+            };
+          }
+          return msg;
+        })
+      );
+    };
+
     // Обработка ошибок
     const handleStreamError = (data: { dialogueId: string; error: string }) => {
       const isForCurrent = isEventForCurrentDialogue(data.dialogueId);
@@ -163,6 +255,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       if (!isForCurrent) return;
 
       setIsStreaming(false);
+      setIsWaitingForResponse(false);
       setError(data.error);
 
       // Удаляем placeholder сообщение при ошибке
@@ -180,6 +273,8 @@ export function useAIChat(options: UseAIChatOptions = {}) {
     socket.on('ai:stream:chunk', handleStreamChunk);
     socket.on('ai:stream:end', handleStreamEnd);
     socket.on('ai:stream:error', handleStreamError);
+    socket.on('ai:tool:call', handleToolCall);
+    socket.on('ai:tool:result', handleToolResult);
 
     // Отписываемся при размонтировании
     return () => {
@@ -188,6 +283,8 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       socket.off('ai:stream:chunk', handleStreamChunk);
       socket.off('ai:stream:end', handleStreamEnd);
       socket.off('ai:stream:error', handleStreamError);
+      socket.off('ai:tool:call', handleToolCall);
+      socket.off('ai:tool:result', handleToolResult);
     };
   }, [socket, isConnected, isEventForCurrentDialogue]);
 
@@ -228,6 +325,9 @@ export function useAIChat(options: UseAIChatOptions = {}) {
       };
       setMessages((prev) => [...prev, userMessage]);
 
+      // Устанавливаем состояние ожидания ответа
+      setIsWaitingForResponse(true);
+
       // Отправляем через сокет
       console.log('[useAIChat] Emitting ai:message:send with dialogueId:', targetDialogueId);
       socket.emit('ai:message:send', {
@@ -256,11 +356,33 @@ export function useAIChat(options: UseAIChatOptions = {}) {
 
         if (response.ok) {
           const data = await response.json();
+          interface ToolCallFromAPI {
+            id: string;
+            name: string;
+            arguments?: Record<string, unknown>;
+            result?: unknown;
+            error?: string;
+            status?: 'pending' | 'running' | 'completed' | 'error';
+          }
+          interface DialogueMessageFromAPI {
+            _id?: string;
+            role: 'user' | 'assistant';
+            content: string;
+            toolCalls?: ToolCallFromAPI[];
+          }
           const historyMessages: Message[] = data.dialogue.messages.map(
-            (msg: any) => ({
+            (msg: DialogueMessageFromAPI) => ({
               id: msg._id || `msg-${Date.now()}-${Math.random()}`,
               role: msg.role,
               content: msg.content,
+              toolCalls: msg.toolCalls?.map((tc) => ({
+                id: tc.id,
+                name: tc.name,
+                arguments: tc.arguments || {},
+                result: tc.result,
+                error: tc.error,
+                status: tc.status || 'completed' as const,
+              })),
             })
           );
           setMessages(historyMessages);
@@ -282,6 +404,7 @@ export function useAIChat(options: UseAIChatOptions = {}) {
     messages,
     setMessages,
     isStreaming,
+    isWaitingForResponse,
     isConnected,
     isAuthenticated,
     error,

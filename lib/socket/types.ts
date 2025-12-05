@@ -7,6 +7,18 @@ export interface ServerToClientEvents {
   'ai:stream:chunk': (data: { dialogueId: string; chunk: string }) => void;
   'ai:stream:end': (data: { dialogueId: string; fullMessage: string }) => void;
   'ai:stream:error': (data: { dialogueId: string; error: string }) => void;
+  'ai:tool:call': (data: {
+    dialogueId: string;
+    toolCallId: string;
+    toolName: string;
+    args: Record<string, unknown>;
+  }) => void;
+  'ai:tool:result': (data: {
+    dialogueId: string;
+    toolCallId: string;
+    result: unknown;
+    error?: string;
+  }) => void;
 
   // Chat события (общение с контактами)
   'chat:message:new': (data: ChatMessageEvent) => void;

@@ -21,7 +21,7 @@ export const AI_TOOLS_REGISTRY: Record<string, AIToolDefinition> = {
   search_contacts: {
     name: 'search_contacts',
     displayName: 'Поиск контактов',
-    description: 'Поиск контактов по имени, email, компании или телефону',
+    description: 'Поиск контактов по имени, email, компании, телефону или адресу. Можно фильтровать по городу и стране.',
     category: 'analytics',
     enabled: true,
   },
@@ -381,12 +381,23 @@ export const AI_TOOLS_REGISTRY: Record<string, AIToolDefinition> = {
 
 // КОНТАКТЫ
 export const searchContactsSchema = z.object({
-  query: z.string().describe('Поисковый запрос: имя, email, телефон или компания'),
-  limit: z.number().min(1).max(20).default(10).describe('Максимальное количество результатов'),
+  query: z.string().optional().describe('Поисковый запрос: имя, email, телефон, компания или адрес'),
+  city: z.string().optional().describe('Фильтр по городу'),
+  country: z.string().optional().describe('Фильтр по коду страны ISO (RU, US, KZ и т.д.)'),
+  limit: z.number().min(1).max(100).default(10).describe('Максимальное количество результатов'),
 });
 
 export const getContactDetailsSchema = z.object({
   contactId: z.string().describe('ID контакта'),
+});
+
+export const addressInputSchema = z.object({
+  line1: z.string().optional().describe('Улица, дом'),
+  line2: z.string().optional().describe('Квартира, офис'),
+  city: z.string().optional().describe('Город'),
+  state: z.string().optional().describe('Область/регион'),
+  zip: z.string().optional().describe('Почтовый индекс'),
+  country: z.string().optional().describe('Код страны ISO (RU, US, KZ)'),
 });
 
 export const createContactSchema = z.object({
@@ -395,6 +406,7 @@ export const createContactSchema = z.object({
   position: z.string().optional().describe('Должность'),
   email: z.string().optional().describe('Email адрес'),
   phone: z.string().optional().describe('Номер телефона'),
+  address: addressInputSchema.optional().describe('Адрес контакта'),
   contactTypeId: z.string().optional().describe('ID типа контакта из словаря'),
   sourceId: z.string().optional().describe('ID источника из словаря'),
   notes: z.string().optional().describe('Заметки о контакте'),
@@ -415,9 +427,15 @@ export const deleteContactSchema = z.object({
 // СДЕЛКИ
 export const searchOpportunitiesSchema = z.object({
   query: z.string().optional().describe('Поисковый запрос по названию сделки'),
+  contactId: z.string().optional().describe('Фильтр по ID контакта — показать все сделки этого клиента'),
+  ownerId: z.string().optional().describe('Фильтр по ID ответственного менеджера'),
   stageId: z.string().optional().describe('Фильтр по ID стадии'),
   pipelineId: z.string().optional().describe('Фильтр по ID воронки'),
-  limit: z.number().min(1).max(20).default(10).describe('Максимальное количество результатов'),
+  minAmount: z.number().optional().describe('Минимальная сумма сделки'),
+  maxAmount: z.number().optional().describe('Максимальная сумма сделки'),
+  closingDateFrom: z.string().optional().describe('Дата закрытия от (ISO дата)'),
+  closingDateTo: z.string().optional().describe('Дата закрытия до (ISO дата)'),
+  limit: z.number().min(1).max(100).default(10).describe('Максимальное количество результатов'),
 });
 
 export const getOpportunityDetailsSchema = z.object({
@@ -463,6 +481,11 @@ export const archiveOpportunitySchema = z.object({
 // ЗАДАЧИ
 export const getTasksOverviewSchema = z.object({
   status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional().describe('Фильтр по статусу'),
+  assigneeId: z.string().optional().describe('Фильтр по ID исполнителя (на кого назначена задача)'),
+  ownerId: z.string().optional().describe('Фильтр по ID создателя задачи'),
+  dueDateFrom: z.string().optional().describe('Срок выполнения от (ISO дата)'),
+  dueDateTo: z.string().optional().describe('Срок выполнения до (ISO дата)'),
+  overdue: z.boolean().optional().describe('Показать только просроченные задачи (срок прошёл, задача не завершена)'),
   limit: z.number().min(1).max(50).default(10).describe('Максимальное количество задач'),
 });
 
