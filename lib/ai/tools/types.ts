@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ==================== TOOL CATEGORIES ====================
 
-export type ToolCategory = 'analytics' | 'actions' | 'dictionaries' | 'users' | 'projects';
+export type ToolCategory = 'analytics' | 'actions' | 'dictionaries' | 'users' | 'projects' | 'utils';
 
 // ==================== TOOL DEFINITIONS ====================
 
@@ -280,25 +280,20 @@ export const AI_TOOLS_REGISTRY: Record<string, AIToolDefinition> = {
     enabled: true,
   },
 
+  // ==================== УТИЛИТЫ ====================
+  get_current_datetime: {
+    name: 'get_current_datetime',
+    displayName: 'Текущая дата',
+    description: 'Получить текущую дату и время сервера. Используй перед созданием задач если нужно точное время.',
+    category: 'utils',
+    enabled: true,
+  },
+
   // ==================== СПРАВОЧНИКИ ====================
-  get_dictionaries: {
-    name: 'get_dictionaries',
-    displayName: 'Список справочников',
-    description: 'Получить список всех справочников (словарей) системы',
-    category: 'dictionaries',
-    enabled: true,
-  },
-  get_dictionary_items: {
-    name: 'get_dictionary_items',
-    displayName: 'Элементы справочника',
-    description: 'Получить элементы справочника по его коду',
-    category: 'dictionaries',
-    enabled: true,
-  },
-  get_dictionary_item_by_code: {
-    name: 'get_dictionary_item_by_code',
-    displayName: 'Элемент по коду',
-    description: 'Получить элемент справочника по коду справочника и коду элемента',
+  search_dictionaries: {
+    name: 'search_dictionaries',
+    displayName: 'Справочники',
+    description: 'Универсальный поиск справочников. Без параметров — все словари с содержимым. С codes — только указанные словари. Возвращает ID элементов для использования в других операциях (priorityId, contactTypeId и т.д.)',
     category: 'dictionaries',
     enabled: true,
   },
@@ -496,10 +491,10 @@ export const getTaskDetailsSchema = z.object({
 export const createTaskSchema = z.object({
   title: z.string().describe('Название задачи (обязательно)'),
   description: z.string().optional().describe('Описание задачи'),
-  dueDate: z.string().optional().describe('Срок выполнения в формате ISO (например, 2024-12-31)'),
-  priorityId: z.string().optional().describe('ID приоритета задачи из словаря'),
-  contactId: z.string().optional().describe('Привязать задачу к контакту'),
-  opportunityId: z.string().optional().describe('Привязать задачу к сделке'),
+  dueDate: z.string().optional().describe('Срок выполнения в формате ISO (например, 2025-12-31). Дата должна быть в будущем!'),
+  priorityId: z.string().optional().describe('ID приоритета задачи из словаря task_priorities'),
+  assigneeId: z.string().optional().describe('ID исполнителя (пользователя) — на кого назначить задачу'),
+  contactId: z.string().optional().describe('Привязать задачу к контакту (клиенту)'),
 });
 
 export const updateTaskSchema = z.object({
@@ -588,16 +583,13 @@ export const getInitialStageSchema = z.object({
   pipelineId: z.string().describe('ID воронки'),
 });
 
+// УТИЛИТЫ
+export const getCurrentDatetimeSchema = z.object({});
+
 // СПРАВОЧНИКИ
-export const getDictionariesSchema = z.object({});
-
-export const getDictionaryItemsSchema = z.object({
-  dictionaryCode: z.string().describe('Код справочника (например: contact_types, task_priorities, sources)'),
-});
-
-export const getDictionaryItemByCodeSchema = z.object({
-  dictionaryCode: z.string().describe('Код справочника (например: contact_types, task_priorities)'),
-  itemCode: z.string().describe('Код элемента справочника'),
+export const searchDictionariesSchema = z.object({
+  codes: z.array(z.string()).optional().describe('Коды справочников для получения (например: ["task_priorities", "contact_types"]). Если не указано — вернёт все справочники'),
+  includeItems: z.boolean().default(true).describe('Включить элементы справочников в ответ (по умолчанию: true)'),
 });
 
 // КАНАЛЫ
@@ -701,9 +693,7 @@ export type GetPipelineByCodeParams = z.infer<typeof getPipelineByCodeSchema>;
 export type GetInitialStageParams = z.infer<typeof getInitialStageSchema>;
 
 // Справочники
-export type GetDictionariesParams = z.infer<typeof getDictionariesSchema>;
-export type GetDictionaryItemsParams = z.infer<typeof getDictionaryItemsSchema>;
-export type GetDictionaryItemByCodeParams = z.infer<typeof getDictionaryItemByCodeSchema>;
+export type SearchDictionariesParams = z.infer<typeof searchDictionariesSchema>;
 
 // Каналы
 export type GetChannelsParams = z.infer<typeof getChannelsSchema>;
@@ -766,10 +756,11 @@ export const TOOL_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   get_pipeline_by_code: getPipelineByCodeSchema,
   get_initial_stage: getInitialStageSchema,
 
+  // Утилиты
+  get_current_datetime: getCurrentDatetimeSchema,
+
   // Справочники
-  get_dictionaries: getDictionariesSchema,
-  get_dictionary_items: getDictionaryItemsSchema,
-  get_dictionary_item_by_code: getDictionaryItemByCodeSchema,
+  search_dictionaries: searchDictionariesSchema,
 
   // Каналы
   get_channels: getChannelsSchema,

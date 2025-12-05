@@ -355,7 +355,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'create_task',
-    description: 'Создать задачу/напоминание. Новое дело с дедлайном, приоритетом и привязкой к клиенту или сделке.',
+    description: 'Создать задачу/напоминание. Новое дело с дедлайном, приоритетом, исполнителем и привязкой к клиенту. ВАЖНО: dueDate должен быть в будущем!',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -369,19 +369,19 @@ export const MCP_TOOLS = [
         },
         dueDate: {
           type: 'string',
-          description: 'Срок выполнения в формате ISO (например, 2024-12-31)',
+          description: 'Срок выполнения в формате ISO (например, 2025-12-31). ВАЖНО: дата должна быть в будущем!',
         },
         priorityId: {
           type: 'string',
-          description: 'ID приоритета задачи из словаря',
+          description: 'ID приоритета задачи из словаря task_priorities (получи через search_dictionaries)',
+        },
+        assigneeId: {
+          type: 'string',
+          description: 'ID исполнителя (пользователя) — на кого назначить задачу',
         },
         contactId: {
           type: 'string',
-          description: 'Привязать задачу к контакту',
-        },
-        opportunityId: {
-          type: 'string',
-          description: 'Привязать задачу к сделке',
+          description: 'Привязать задачу к контакту (клиенту)',
         },
       },
       required: ['title'],
@@ -547,27 +547,33 @@ export const MCP_TOOLS = [
     },
   },
 
-  // ==================== СПРАВОЧНИКИ (Словари, Настройки) ====================
+  // ==================== УТИЛИТЫ ====================
   {
-    name: 'get_dictionaries',
-    description: 'Список справочников. Все справочники системы: типы контактов, источники, приоритеты задач и др.',
+    name: 'get_current_datetime',
+    description: 'Получить текущую дату и время сервера. Используй перед созданием задач чтобы знать актуальную дату.',
     inputSchema: {
       type: 'object' as const,
       properties: {},
     },
   },
+
+  // ==================== СПРАВОЧНИКИ (Словари, Настройки) ====================
   {
-    name: 'get_dictionary_items',
-    description: 'Элементы справочника. Значения из справочника (например, все приоритеты: низкий, средний, высокий).',
+    name: 'search_dictionaries',
+    description: 'Универсальный поиск справочников. Без параметров — все словари с содержимым (ID и названия элементов). Используй для получения ID приоритетов, типов контактов, источников и т.д.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        dictionaryCode: {
-          type: 'string',
-          description: 'Код справочника (например: contact_types, task_priorities, sources)',
+        codes: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Коды справочников (например: ["task_priorities", "contact_types"]). Без этого параметра — все справочники',
+        },
+        includeItems: {
+          type: 'boolean',
+          description: 'Включить элементы справочников (по умолчанию: true)',
         },
       },
-      required: ['dictionaryCode'],
     },
   },
 
@@ -970,24 +976,6 @@ export const MCP_TOOLS = [
       required: ['contactId'],
     },
   },
-  {
-    name: 'get_dictionary_item_by_code',
-    description: 'Найти значение в справочнике. Конкретный элемент по кодам справочника и элемента.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        dictionaryCode: {
-          type: 'string',
-          description: 'Код справочника (например: contact_types, task_priorities)',
-        },
-        itemCode: {
-          type: 'string',
-          description: 'Код элемента справочника',
-        },
-      },
-      required: ['dictionaryCode', 'itemCode'],
-    },
-  },
 ];
 
 /**
@@ -1363,28 +1351,28 @@ export async function handleMCPToolCall(
     }
 
     case 'create_task': {
-      const { title, description, dueDate, priorityId, contactId, opportunityId } = args as {
+      const { title, description, dueDate, priorityId, contactId, assigneeId } = args as {
         title: string;
         description?: string;
         dueDate?: string;
         priorityId?: string;
         contactId?: string;
-        opportunityId?: string;
+        assigneeId?: string;
       };
 
+      // linkedTo поддерживает только contact и project
       const linkedTo = contactId
         ? { entityType: 'contact' as const, entityId: contactId }
-        : opportunityId
-          ? { entityType: 'opportunity' as const, entityId: opportunityId }
-          : undefined;
+        : undefined;
 
-      const task = await api('POST', '/api/tasks', {
-        title,
-        description,
-        dueDate,
-        priorityId,
-        linkedTo,
-      }) as { id: string; title: string };
+      const taskData: Record<string, unknown> = { title };
+      if (description) taskData.description = description;
+      if (dueDate) taskData.dueDate = dueDate;
+      if (priorityId) taskData.priorityId = priorityId;
+      if (assigneeId) taskData.assigneeId = assigneeId;
+      if (linkedTo) taskData.linkedTo = linkedTo;
+
+      const task = await api('POST', '/api/tasks', taskData) as { id: string; title: string };
 
       return { success: true, task: { id: task.id, title: task.title } };
     }
@@ -1569,9 +1557,48 @@ export async function handleMCPToolCall(
       };
     }
 
+    // ==================== УТИЛИТЫ ====================
+    case 'get_current_datetime': {
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+      // Вычисляем полезные даты для задач
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const nextWeek = new Date(now);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+
+      const nextMonth = new Date(now);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+      return {
+        success: true,
+        current: {
+          date: dateStr,
+          time: timeStr,
+          iso: now.toISOString(),
+          timestamp: now.getTime(),
+        },
+        suggestions: {
+          tomorrow: tomorrow.toISOString().split('T')[0],
+          nextWeek: nextWeek.toISOString().split('T')[0],
+          nextMonth: nextMonth.toISOString().split('T')[0],
+        },
+        note: 'При создании задач используй даты из suggestions или позже',
+      };
+    }
+
     // ==================== СПРАВОЧНИКИ ====================
-    case 'get_dictionaries': {
-      const result = await api('POST', '/api/dictionaries/search', {}) as {
+    case 'search_dictionaries': {
+      const { codes, includeItems = true } = args as {
+        codes?: string[];
+        includeItems?: boolean;
+      };
+
+      // Получаем список всех справочников
+      const dictResult = await api('POST', '/api/dictionaries/search', {}) as {
         dictionaries: Array<{
           code: string;
           name: string;
@@ -1580,39 +1607,66 @@ export async function handleMCPToolCall(
         }>;
       };
 
+      // Фильтруем по codes если указаны
+      const filteredDicts = codes && codes.length > 0
+        ? dictResult.dictionaries.filter(d => codes.includes(d.code))
+        : dictResult.dictionaries;
+
+      // Если не нужны элементы — возвращаем только метаданные
+      if (!includeItems) {
+        return {
+          success: true,
+          dictionaries: filteredDicts.map((d) => ({
+            code: d.code,
+            name: d.name,
+            description: d.description,
+            itemsCount: d.itemsCount,
+          })),
+        };
+      }
+
+      // Получаем элементы для каждого справочника
+      const dictionariesWithItems = await Promise.all(
+        filteredDicts.map(async (dict) => {
+          try {
+            const itemsResult = await api('GET', `/api/dictionaries/${dict.code}/items`) as {
+              items: Array<{
+                id: string;
+                code: string;
+                name: string;
+                color?: string;
+                isActive: boolean;
+              }>;
+            };
+
+            return {
+              code: dict.code,
+              name: dict.name,
+              description: dict.description,
+              items: itemsResult.items
+                .filter(i => i.isActive)
+                .map((i) => ({
+                  id: i.id,
+                  code: i.code,
+                  name: i.name,
+                  color: i.color,
+                })),
+            };
+          } catch {
+            // Если не удалось получить элементы — возвращаем пустой массив
+            return {
+              code: dict.code,
+              name: dict.name,
+              description: dict.description,
+              items: [],
+            };
+          }
+        })
+      );
+
       return {
         success: true,
-        dictionaries: result.dictionaries.map((d) => ({
-          code: d.code,
-          name: d.name,
-          description: d.description,
-          itemsCount: d.itemsCount,
-        })),
-      };
-    }
-
-    case 'get_dictionary_items': {
-      const { dictionaryCode } = args as { dictionaryCode: string };
-      const result = await api('GET', `/api/dictionaries/${dictionaryCode}/items`) as {
-        items: Array<{
-          id: string;
-          code: string;
-          name: string;
-          color?: string;
-          isActive: boolean;
-        }>;
-      };
-
-      return {
-        success: true,
-        dictionaryCode,
-        items: result.items.map((i) => ({
-          id: i.id,
-          code: i.code,
-          name: i.name,
-          color: i.color,
-          isActive: i.isActive,
-        })),
+        dictionaries: dictionariesWithItems,
       };
     }
 
@@ -2071,18 +2125,6 @@ export async function handleMCPToolCall(
           createdAt: i.createdAt,
         })),
       };
-    }
-
-    case 'get_dictionary_item_by_code': {
-      const { dictionaryCode, itemCode } = args as { dictionaryCode: string; itemCode: string };
-      const item = await api('GET', `/api/dictionaries/${dictionaryCode}/items/by-code/${itemCode}`) as {
-        id: string;
-        code: string;
-        name: string;
-        properties?: Record<string, unknown>;
-      };
-
-      return { success: true, item };
     }
 
     default:
