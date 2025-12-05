@@ -4,19 +4,21 @@
  */
 
 import { streamText, stepCountIs } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { getAIModel } from '../lib/ai/service';
 import { getAITools } from '../lib/ai/tools';
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+import { connectDB } from '../lib/db';
 
 async function testAIChat() {
   console.log('=== Testing AI Chat ===\n');
 
-  const openai = createOpenAI({
-    apiKey: OPENAI_API_KEY,
-  });
+  // Connect to database to read settings
+  await connectDB();
 
-  const model = openai('gpt-4o-mini');
+  // Get model from system settings
+  console.log('Loading AI model from settings...');
+  const model = await getAIModel();
+  console.log('Model loaded');
+
   const userId = '6930a063a5703dd6e7e0d15c';
 
   // Get tools
@@ -73,6 +75,8 @@ async function testAIChat() {
   } catch (error) {
     console.error('\n\nError:', error);
   }
+
+  process.exit(0);
 }
 
 testAIChat().catch(console.error);
