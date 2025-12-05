@@ -45,6 +45,10 @@ export interface TelephonyProviderResponse {
     authToken: boolean;
     apiSecret: boolean;
   };
+  // Публичные данные credentials (не секреты)
+  publicCredentials?: {
+    accountSid?: string; // Twilio Account SID можно показывать
+  };
   hasWebhookSecret: boolean;
   settings: ITelephonyProviderSettings;
   createdAt: Date;
@@ -144,6 +148,14 @@ export interface TestCallResult {
 
 // Функция для санитизации провайдера (скрытие секретов)
 export function sanitizeProvider(provider: ITelephonyProvider): TelephonyProviderResponse {
+  // Публичные credentials (не секреты)
+  const publicCredentials: TelephonyProviderResponse['publicCredentials'] = {};
+
+  // Account SID в Twilio - это идентификатор аккаунта, не секрет
+  if (provider.code === 'twilio' && provider.credentials?.accountSid) {
+    publicCredentials.accountSid = provider.credentials.accountSid;
+  }
+
   return {
     _id: provider._id.toString(),
     code: provider.code,
@@ -157,6 +169,7 @@ export function sanitizeProvider(provider: ITelephonyProvider): TelephonyProvide
       authToken: !!provider.credentials?.authToken,
       apiSecret: !!provider.credentials?.apiSecret,
     },
+    publicCredentials: Object.keys(publicCredentials).length > 0 ? publicCredentials : undefined,
     hasWebhookSecret: !!provider.webhookSecret,
     settings: provider.settings || {},
     createdAt: provider.createdAt,

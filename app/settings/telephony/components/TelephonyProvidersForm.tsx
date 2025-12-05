@@ -183,7 +183,7 @@ export function TelephonyProvidersForm() {
           <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
             Настроенные провайдеры
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-3">
             {data.providers.map((provider) => (
               <ProviderCard
                 key={provider._id}
