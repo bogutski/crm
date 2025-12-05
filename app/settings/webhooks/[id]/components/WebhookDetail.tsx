@@ -103,7 +103,7 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
 
   // Logs state
   const [logs, setLogs] = useState<WebhookLog[]>([]);
@@ -379,6 +379,15 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
     return 'bg-red-100 dark:bg-red-900/30';
   };
 
+  const highlightJson = (json: string) => {
+    return json
+      .replace(/(".*?")\s*:/g, '<span class="text-purple-600 dark:text-purple-400">$1</span>:')
+      .replace(/:\s*(".*?")/g, ': <span class="text-green-600 dark:text-green-400">$1</span>')
+      .replace(/:\s*(\d+\.?\d*)/g, ': <span class="text-blue-600 dark:text-blue-400">$1</span>')
+      .replace(/:\s*(true|false)/g, ': <span class="text-amber-600 dark:text-amber-400">$1</span>')
+      .replace(/:\s*(null)/g, ': <span class="text-zinc-400">$1</span>');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -463,80 +472,84 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
       {/* Test Result */}
       {testResult && (
         <div
-          className={`p-4 rounded-lg mb-6 ${
+          className={`p-3 rounded-lg mb-4 ${
             testResult.success
               ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
               : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
           }`}
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span
-                className={`font-medium ${
+                className={`w-2 h-2 rounded-full ${
+                  testResult.success ? 'bg-green-500' : 'bg-red-500'
+                }`}
+              />
+              <span
+                className={`text-sm font-medium ${
                   testResult.success
                     ? 'text-green-700 dark:text-green-400'
                     : 'text-red-700 dark:text-red-400'
                 }`}
               >
-                {testResult.success ? 'Тест успешен' : 'Тест не прошёл'}
+                {testResult.success ? 'Успешно' : 'Ошибка'}
               </span>
               {testResult.responseStatus && (
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  HTTP {testResult.responseStatus}
-                </span>
+                <span className="text-xs text-zinc-500">{testResult.responseStatus}</span>
               )}
-              <span className="text-sm text-zinc-500">{testResult.duration}ms</span>
+              <span className="text-xs text-zinc-400">{testResult.duration}ms</span>
+              {testResult.error && (
+                <span className="text-xs text-red-600 dark:text-red-400">{testResult.error}</span>
+              )}
             </div>
             <button
               onClick={() => setTestResult(null)}
-              className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             >
-              Скрыть
+              ×
             </button>
           </div>
-          {testResult.error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{testResult.error}</p>
-          )}
-          {testResult.responseBody && (
-            <pre className="mt-2 p-2 bg-white/50 dark:bg-black/20 rounded text-xs overflow-auto max-h-32">
-              {testResult.responseBody}
-            </pre>
-          )}
         </div>
       )}
 
-      {/* Settings Form - Collapsible */}
-      <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg mb-6">
-        <button
-          onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
-          className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+      {/* Three Column Layout: Settings (left, collapsible) + Logs List (middle) + Log Details (right) */}
+      <div className="flex gap-4 h-[calc(100vh-200px)] min-h-[500px]">
+        {/* Settings Panel - Collapsible */}
+        <div
+          className={`border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col transition-all duration-300 shrink-0 ${
+            isSettingsExpanded ? 'w-72' : 'w-12'
+          }`}
         >
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Настройки
-          </h2>
-          {isSettingsExpanded ? (
-            <ChevronUp className="w-5 h-5 text-zinc-400" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-zinc-400" />
-          )}
-        </button>
+          <button
+            onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+            className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+          >
+            {isSettingsExpanded ? (
+              <>
+                <ChevronDown className="w-4 h-4 text-zinc-400 rotate-90" />
+                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Настройки</span>
+              </>
+            ) : (
+              <ChevronDown className="w-4 h-4 text-zinc-400 -rotate-90" />
+            )}
+          </button>
 
-        {isSettingsExpanded && (
-          <div className="p-6 pt-0 border-t border-zinc-200 dark:border-zinc-800">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mt-4">
-              {errors.root && (
-                <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  {errors.root.message}
-                </div>
-              )}
+          {isSettingsExpanded && (
+            <div className="flex-1 overflow-y-auto p-3">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+                {errors.root && (
+                  <div className="p-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded">
+                    {errors.root.message}
+                  </div>
+                )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField label="Название" htmlFor="name" required error={errors.name?.message}>
                   <Input
                     id="name"
                     {...register('name')}
-                    placeholder="Например: Уведомление в Telegram"
+                    placeholder="Название вебхука"
                     error={errors.name?.message}
+                    className="text-sm"
                   />
                 </FormField>
 
@@ -545,16 +558,17 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
                     id="url"
                     type="url"
                     {...register('url')}
-                    placeholder="https://example.com/webhook"
+                    placeholder="https://..."
                     error={errors.url?.message}
+                    className="text-sm"
                   />
                 </FormField>
 
-                <FormField label="HTTP метод" htmlFor="method" required>
+                <FormField label="Метод" htmlFor="method" required>
                   <select
                     id="method"
                     {...register('method')}
-                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
@@ -563,48 +577,43 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
                     <option value="DELETE">DELETE</option>
                   </select>
                 </FormField>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Headers */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                       Заголовки
                     </label>
                     <button
                       type="button"
                       onClick={() => appendHeader({ key: '', value: '' })}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
                     >
-                      <Plus className="w-4 h-4" />
-                      Добавить
+                      <Plus className="w-3 h-3" />
                     </button>
                   </div>
                   {headerFields.length === 0 ? (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Нет дополнительных заголовков
-                    </p>
+                    <p className="text-xs text-zinc-400">Нет заголовков</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {headerFields.map((field, index) => (
-                        <div key={field.id} className="flex gap-2">
+                        <div key={field.id} className="flex gap-1">
                           <Input
                             {...register(`headers.${index}.key`)}
-                            placeholder="Header-Name"
-                            className="flex-1"
+                            placeholder="Key"
+                            className="flex-1 text-xs"
                           />
                           <Input
                             {...register(`headers.${index}.value`)}
-                            placeholder="Значение"
-                            className="flex-1"
+                            placeholder="Value"
+                            className="flex-1 text-xs"
                           />
                           <button
                             type="button"
                             onClick={() => removeHeader(index)}
-                            className="p-2 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                            className="p-1 text-zinc-400 hover:text-red-500"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       ))}
@@ -614,20 +623,20 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
 
                 {/* Events */}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5 block">
                     События <span className="text-red-500">*</span>
                   </label>
                   {errors.events && (
-                    <p className="text-sm text-red-600 dark:text-red-400 mb-2">
+                    <p className="text-xs text-red-600 dark:text-red-400 mb-1">
                       {errors.events.message}
                     </p>
                   )}
                   {isLoadingEvents ? (
-                    <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-zinc-900 dark:border-zinc-50"></div>
+                    <div className="flex items-center justify-center py-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-zinc-900 dark:border-zinc-50"></div>
                     </div>
                   ) : (
-                    <div className="space-y-4 max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
+                    <div className="space-y-2 max-h-40 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded p-2">
                       {availableEvents.map((group) => {
                         const groupEventIds = group.items.map((e) => e.event);
                         const selectedCount = groupEventIds.filter((e) =>
@@ -638,7 +647,7 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
 
                         return (
                           <div key={group.entity}>
-                            <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={allSelected}
@@ -646,31 +655,28 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
                                   if (el) el.indeterminate = someSelected;
                                 }}
                                 onChange={() => toggleEntityEvents(group.entity, group.items)}
-                                className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
+                                className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
                               />
-                              <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                              <span className="text-xs font-medium text-zinc-900 dark:text-zinc-50">
                                 {group.entityLabel}
                               </span>
-                              <span className="text-xs text-zinc-500">
-                                ({selectedCount}/{groupEventIds.length})
+                              <span className="text-xs text-zinc-400">
+                                {selectedCount}/{groupEventIds.length}
                               </span>
                             </label>
-                            <div className="ml-6 space-y-1">
+                            <div className="ml-4 mt-1 space-y-0.5">
                               {group.items.map((item) => (
                                 <label
                                   key={item.event}
-                                  className="flex items-center gap-2 cursor-pointer text-sm"
+                                  className="flex items-center gap-1.5 cursor-pointer"
                                 >
                                   <input
                                     type="checkbox"
                                     checked={selectedEvents?.includes(item.event) || false}
                                     onChange={() => toggleEvent(item.event)}
-                                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
+                                    className="w-3 h-3 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
                                   />
-                                  <span className="text-zinc-700 dark:text-zinc-300">{item.label}</span>
-                                  <code className="text-xs text-zinc-500 dark:text-zinc-500">
-                                    {item.event}
-                                  </code>
+                                  <span className="text-xs text-zinc-600 dark:text-zinc-400">{item.label}</span>
                                 </label>
                               ))}
                             </div>
@@ -680,26 +686,29 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <Button type="submit" isLoading={isSaving} disabled={!isDirty}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Сохранить изменения
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
+                <button
+                  type="submit"
+                  disabled={isSaving || !isDirty}
+                  className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed rounded transition-colors flex items-center justify-center gap-2"
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Сохранить
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
 
-      {/* Logs Section - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-        {/* Logs List */}
-        <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col h-[calc(100vh-320px)] min-h-[400px]">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
+        {/* Logs List Panel */}
+        <div className="w-72 shrink-0 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              Логи
+              История
             </h2>
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               {logsTotal}
@@ -712,53 +721,54 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-zinc-900 dark:border-zinc-50"></div>
               </div>
             ) : logs.length === 0 ? (
-              <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-                <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">Логи не найдены</p>
               </div>
             ) : (
-              <table className="w-full text-xs">
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {logs.map((log) => (
-                    <tr
-                      key={log.id}
-                      onClick={() => setSelectedLog(log)}
-                      className={`cursor-pointer transition-colors ${
-                        selectedLog?.id === log.id
-                          ? 'bg-blue-50 dark:bg-blue-900/20'
-                          : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                      }`}
-                    >
-                      <td className="pl-3 py-1.5 w-5">
-                        {log.success ? (
-                          <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                        )}
-                      </td>
-                      <td className="py-1.5 font-medium text-zinc-900 dark:text-zinc-50 truncate max-w-[120px]">
-                        {log.event.split('.')[1] || log.event}
-                      </td>
-                      <td className="py-1.5 w-10">
-                        {log.responseStatus && (
-                          <span className={`font-medium ${getStatusColor(log.responseStatus)}`}>
-                            {log.responseStatus}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-1.5 pr-3 text-zinc-400 dark:text-zinc-500 text-right whitespace-nowrap">
-                        {formatLogDateTime(log.createdAt).split(',')[0]}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div>
+                {logs.map((log) => (
+                  <div
+                    key={log.id}
+                    onClick={() => setSelectedLog(log)}
+                    className={`px-3 py-2 cursor-pointer transition-colors border-b border-zinc-200 dark:border-zinc-800 ${
+                      selectedLog?.id === log.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20'
+                        : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          log.success ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                      />
+                      <code className="text-xs font-medium text-zinc-900 dark:text-zinc-50 truncate">
+                        {log.event}
+                      </code>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 pl-4">
+                      <span>{formatLogDateTime(log.createdAt)}</span>
+                      <span>•</span>
+                      {log.responseStatus ? (
+                        <span className={getStatusColor(log.responseStatus)}>
+                          {log.responseStatus}
+                        </span>
+                      ) : (
+                        <span>—</span>
+                      )}
+                      <span>•</span>
+                      <span>{log.duration}ms</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
           {/* Pagination */}
           {logsTotal > 50 && (
-            <div className="flex items-center justify-between px-2 py-1.5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+            <div className="flex items-center justify-between px-3 py-2 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
               <button
                 onClick={() => setLogsPage((p) => Math.max(1, p - 1))}
                 disabled={logsPage === 1}
@@ -780,119 +790,129 @@ export function WebhookDetail({ webhookId }: WebhookDetailProps) {
           )}
         </div>
 
-        {/* Log Details */}
-        <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col h-[calc(100vh-320px)] min-h-[400px]">
+        {/* Log Details Panel */}
+        <div className="flex-1 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col min-w-0">
           {selectedLog ? (
             <>
-              {/* Log Detail Header */}
-              <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2 mb-2">
-                  {selectedLog.success ? (
-                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  )}
-                  <code className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {/* Detail Header */}
+            <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      selectedLog.success ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                  />
+                  <code className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 truncate">
                     {selectedLog.event}
                   </code>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
-                  {selectedLog.responseStatus && (
-                    <span className={`font-medium ${getStatusColor(selectedLog.responseStatus)}`}>
-                      HTTP {selectedLog.responseStatus}
-                    </span>
-                  )}
-                  <span>{selectedLog.duration}ms</span>
-                  <span>{formatFullDateTime(selectedLog.createdAt)}</span>
-                </div>
+                <button
+                  onClick={() => setSelectedLog(null)}
+                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 shrink-0 ml-2"
+                >
+                  <span className="text-lg">×</span>
+                </button>
               </div>
+              <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                {selectedLog.responseStatus && (
+                  <span className={`font-medium ${getStatusColor(selectedLog.responseStatus)}`}>
+                    HTTP {selectedLog.responseStatus}
+                  </span>
+                )}
+                <span>{selectedLog.duration}ms</span>
+                <span>{formatFullDateTime(selectedLog.createdAt)}</span>
+              </div>
+            </div>
 
-              {/* Log Detail Content */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Error */}
-                {selectedLog.error && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">
-                      Ошибка
-                    </p>
-                    <p className="text-sm text-red-600 dark:text-red-400">{selectedLog.error}</p>
+            {/* Detail Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Error */}
+              {selectedLog.error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-xs font-medium text-red-700 dark:text-red-400 mb-1">
+                    Ошибка
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400">{selectedLog.error}</p>
+                </div>
+              )}
+
+              {/* Request */}
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-50 mb-2 uppercase tracking-wider">
+                  Запрос
+                </h3>
+                <div className="p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-1.5 py-0.5 text-xs font-medium rounded shrink-0 ${getMethodBadgeColor(selectedLog.method)}`}>
+                      {selectedLog.method}
+                    </span>
+                    <code className="text-xs text-zinc-600 dark:text-zinc-400 break-all">
+                      {selectedLog.url}
+                    </code>
+                  </div>
+                </div>
+
+                {Object.keys(selectedLog.requestHeaders).length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-xs text-zinc-500 mb-1">Заголовки</p>
+                    <div className="p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded">
+                      <div className="text-xs space-y-0.5 font-mono">
+                        {Object.entries(selectedLog.requestHeaders).map(([key, value]) => (
+                          <div key={key}>
+                            <span className="text-zinc-400">{key}:</span>{' '}
+                            <span className="text-zinc-700 dark:text-zinc-300">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Request */}
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-                    Запрос
-                  </h3>
-                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${getMethodBadgeColor(selectedLog.method)}`}>
-                        {selectedLog.method}
-                      </span>
-                      <code className="text-sm text-zinc-600 dark:text-zinc-400 break-all">
-                        {selectedLog.url}
-                      </code>
-                    </div>
+                {selectedLog.requestBody && (
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Тело</p>
+                    <pre
+                      className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs font-mono whitespace-pre-wrap break-words"
+                      dangerouslySetInnerHTML={{
+                        __html: highlightJson(JSON.stringify(selectedLog.requestBody, null, 2))
+                      }}
+                    />
                   </div>
-
-                  {/* Request Headers */}
-                  {Object.keys(selectedLog.requestHeaders).length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase">
-                        Заголовки
-                      </p>
-                      <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
-                        <div className="text-xs space-y-1 font-mono">
-                          {Object.entries(selectedLog.requestHeaders).map(([key, value]) => (
-                            <div key={key} className="flex">
-                              <span className="text-zinc-500 dark:text-zinc-400 mr-2">
-                                {key}:
-                              </span>
-                              <span className="text-zinc-700 dark:text-zinc-300 break-all">
-                                {value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Request Body */}
-                  {selectedLog.requestBody && (
-                    <div>
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase">
-                        Тело запроса
-                      </p>
-                      <pre className="p-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-lg text-xs overflow-auto max-h-64 font-mono">
-                        {JSON.stringify(selectedLog.requestBody, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-
-                {/* Response */}
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-                    Ответ
-                  </h3>
-                  {selectedLog.responseBody ? (
-                    <pre className="p-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-lg text-xs overflow-auto max-h-64 font-mono">
-                      {selectedLog.responseBody}
-                    </pre>
-                  ) : (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                      Нет тела ответа
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
+
+              {/* Response */}
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-50 mb-2 uppercase tracking-wider">
+                  Ответ
+                </h3>
+                {selectedLog.responseBody ? (
+                  <pre
+                    className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs font-mono whitespace-pre-wrap break-words"
+                    dangerouslySetInnerHTML={{
+                      __html: (() => {
+                        try {
+                          const parsed = JSON.parse(selectedLog.responseBody);
+                          return highlightJson(JSON.stringify(parsed, null, 2));
+                        } catch {
+                          return selectedLog.responseBody;
+                        }
+                      })()
+                    }}
+                  />
+                ) : (
+                  <p className="text-xs text-zinc-400 italic">Нет тела ответа</p>
+                )}
+              </div>
+            </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-zinc-500 dark:text-zinc-400">
-              <div className="text-center">
-                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Выберите лог для просмотра</p>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-zinc-400 dark:text-zinc-500">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Выберите запрос из списка</p>
+                <p className="text-xs mt-1">для просмотра деталей</p>
               </div>
             </div>
           )}

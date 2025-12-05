@@ -203,10 +203,10 @@ export function WebhooksList() {
                   Название
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  URL
+                  События
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  События
+                  URL
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Статус
@@ -215,100 +215,111 @@ export function WebhooksList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {webhooks.map((webhook) => (
-                <tr
-                  key={webhook.id}
-                  onClick={() => handleRowClick(webhook.id)}
-                  className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                        <Webhook className="w-4 h-4 text-zinc-500" />
-                      </div>
-                      <div>
-                        <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                          {webhook.name}
-                        </span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${getMethodBadgeColor(webhook.method)}`}>
-                            {webhook.method}
+              {webhooks.map((webhook) => {
+                const maxEvents = 5;
+                const visibleEvents = webhook.events.slice(0, maxEvents);
+                const remainingCount = webhook.events.length - maxEvents;
+
+                return (
+                  <tr
+                    key={webhook.id}
+                    onClick={() => handleRowClick(webhook.id)}
+                    className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                        {webhook.name}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {visibleEvents.map((event) => (
+                          <span
+                            key={event}
+                            className="px-2 py-0.5 text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded"
+                          >
+                            {event}
                           </span>
-                        </div>
+                        ))}
+                        {remainingCount > 0 && (
+                          <span className="px-2 py-0.5 text-xs bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded font-medium">
+                            +{remainingCount}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <code className="text-sm text-zinc-600 dark:text-zinc-400 truncate max-w-xs block">
-                      {webhook.url}
-                    </code>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {webhook.events.length} {webhook.events.length === 1 ? 'событие' : 'событий'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleToggleActive(webhook); }}
-                      className={`flex items-center gap-2 text-sm ${
-                        webhook.isActive
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-zinc-400 dark:text-zinc-500'
-                      }`}
-                    >
-                      {webhook.isActive ? (
-                        <>
-                          <ToggleRight className="w-5 h-5" />
-                          Активен
-                        </>
-                      ) : (
-                        <>
-                          <ToggleLeft className="w-5 h-5" />
-                          Неактивен
-                        </>
-                      )}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${getMethodBadgeColor(webhook.method)}`}>
+                          {webhook.method}
+                        </span>
+                        <code className="text-sm text-zinc-600 dark:text-zinc-400 truncate max-w-xs block">
+                          {webhook.url}
+                        </code>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleTest(webhook); }}
-                        disabled={testingId === webhook.id}
-                        className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded disabled:opacity-50"
-                        title="Тестировать"
+                        onClick={(e) => { e.stopPropagation(); handleToggleActive(webhook); }}
+                        className={`flex items-center gap-2 text-sm ${
+                          webhook.isActive
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-zinc-400 dark:text-zinc-500'
+                        }`}
                       >
-                        {testingId === webhook.id ? (
-                          <div className="w-4 h-4 border-2 border-zinc-300 border-t-blue-600 rounded-full animate-spin" />
+                        {webhook.isActive ? (
+                          <>
+                            <ToggleRight className="w-5 h-5" />
+                            Активен
+                          </>
                         ) : (
-                          <Play className="w-4 h-4" />
+                          <>
+                            <ToggleLeft className="w-5 h-5" />
+                            Неактивен
+                          </>
                         )}
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setLogsWebhook(webhook); }}
-                        className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
-                        title="Логи"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(webhook); }}
-                        className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
-                        title="Редактировать"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeletingWebhook(webhook); }}
-                        className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
-                        title="Удалить"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleTest(webhook); }}
+                          disabled={testingId === webhook.id}
+                          className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded disabled:opacity-50"
+                          title="Тестировать"
+                        >
+                          {testingId === webhook.id ? (
+                            <div className="w-4 h-4 border-2 border-zinc-300 border-t-blue-600 rounded-full animate-spin" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setLogsWebhook(webhook); }}
+                          className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
+                          title="Логи"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit(webhook); }}
+                          className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
+                          title="Редактировать"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeletingWebhook(webhook); }}
+                          className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded"
+                          title="Удалить"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
