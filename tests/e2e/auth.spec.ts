@@ -6,7 +6,7 @@ test.describe('Authentication', () => {
     test('should display login form by default', async ({ page }) => {
       await page.goto('/login');
 
-      await expect(page.getByRole('heading', { name: 'CRM Proto' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'ClientBase' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Вход' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Регистрация' })).toBeVisible();
       await expect(page.getByLabel('Email')).toBeVisible();

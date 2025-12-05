@@ -99,7 +99,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950">
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold text-center mb-6 text-zinc-900 dark:text-zinc-50">
-          CRM Proto
+          ClientBase
         </h1>
 
         {(errorParam === 'inactive' || errors.root) && (
@@ -200,7 +200,7 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950">
           <div className="bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-md w-full max-w-md">
             <h1 className="text-2xl font-bold text-center mb-6 text-zinc-900 dark:text-zinc-50">
-              CRM Proto
+              ClientBase
             </h1>
             <div className="animate-pulse space-y-4">
               <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded"></div>
