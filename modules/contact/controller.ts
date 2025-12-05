@@ -65,6 +65,7 @@ function toContactResponse(contact: IContact): ContactResponse {
     name: contact.name,
     emails: contact.emails || [],
     phones: contact.phones || [],
+    addresses: contact.addresses || [],
     company: contact.company,
     position: contact.position,
     notes: contact.notes,
@@ -79,18 +80,63 @@ function toContactResponse(contact: IContact): ContactResponse {
 export async function getContacts(filters: ContactFilters): Promise<ContactsListResponse> {
   await dbConnect();
 
-  const { search, ownerId, contactType, source, page = 1, limit = 20 } = filters;
+  const { search, city, country, ownerId, contactType, source, page = 1, limit = 20 } = filters;
 
   const query: Record<string, unknown> = {};
 
   if (search) {
+    // Проверяем, похоже ли это на номер телефона (содержит цифры и возможно + или пробелы)
+    const isPhoneLike = /^[\d\s\+\-\(\)]+$/.test(search) && search.replace(/\D/g, '').length >= 7;
+
+    if (isPhoneLike) {
+      // Для телефонов: очищаем до цифр и ищем по вхождению в e164
+      const phoneDigits = search.replace(/\D/g, '');
+      query.$or = [
+        { 'phones.e164': { $regex: phoneDigits, $options: 'i' } },
+      ];
+    } else {
+      // Обычный текстовый поиск
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { 'emails.address': { $regex: search, $options: 'i' } },
+        { 'phones.e164': { $regex: search, $options: 'i' } },
+        { 'phones.international': { $regex: search, $options: 'i' } },
+        { company: { $regex: search, $options: 'i' } },
+        // Поиск по адресу
+        { 'addresses.line1': { $regex: search, $options: 'i' } },
+        { 'addresses.line2': { $regex: search, $options: 'i' } },
+        { 'addresses.city': { $regex: search, $options: 'i' } },
+        { 'addresses.state': { $regex: search, $options: 'i' } },
+        { 'addresses.zip': { $regex: search, $options: 'i' } },
+      ];
+    }
+  }
+
+  // Фильтр по городу
+  if (city) {
+    query['addresses.city'] = { $regex: city, $options: 'i' };
+  }
+
+  // Фильтр по стране (из адреса или телефона)
+  if (country) {
+    const countryUpper = country.toUpperCase();
     query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { 'emails.address': { $regex: search, $options: 'i' } },
-      { 'phones.e164': { $regex: search, $options: 'i' } },
-      { 'phones.international': { $regex: search, $options: 'i' } },
-      { company: { $regex: search, $options: 'i' } },
+      ...(query.$or as unknown[] || []),
+      { 'addresses.country': countryUpper },
+      { 'phones.country': countryUpper },
     ];
+    // Если уже есть $or от search, нужно использовать $and
+    if (search) {
+      const searchOr = query.$or;
+      delete query.$or;
+      query.$and = [
+        { $or: searchOr },
+        { $or: [
+          { 'addresses.country': countryUpper },
+          { 'phones.country': countryUpper },
+        ]},
+      ];
+    }
   }
 
   if (ownerId) {
@@ -156,6 +202,7 @@ export async function createContact(data: CreateContactDTO): Promise<ContactResp
     name: data.name,
     emails: data.emails || [],
     phones: normalizedPhones,
+    addresses: data.addresses || [],
     company: data.company,
     position: data.position,
     notes: data.notes,

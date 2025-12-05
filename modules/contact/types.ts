@@ -1,7 +1,7 @@
 // Реэкспорт типов модели
-export type { IContact, IEmail, IPhone, IContactType } from './model';
+export type { IContact, IEmail, IPhone, IAddress, IContactType } from './model';
 
-import { IEmail, IPhone } from './model';
+import { IEmail, IPhone, IAddress } from './model';
 
 // === DTO для контроллера ===
 
@@ -21,6 +21,7 @@ export interface CreateContactDTO {
   name: string;
   emails?: IEmail[];
   phones?: IPhone[];
+  addresses?: IAddress[];
   company?: string;
   position?: string;
   notes?: string;
@@ -33,6 +34,7 @@ export interface UpdateContactDTO {
   name?: string;
   emails?: IEmail[];
   phones?: IPhone[];
+  addresses?: IAddress[];
   company?: string;
   position?: string;
   notes?: string;
@@ -46,6 +48,7 @@ export interface ContactResponse {
   name: string;
   emails: IEmail[];
   phones: IPhone[];
+  addresses: IAddress[];
   company?: string;
   position?: string;
   notes?: string;
@@ -65,6 +68,8 @@ export interface ContactsListResponse {
 
 export interface ContactFilters {
   search?: string;
+  city?: string;
+  country?: string;
   ownerId?: string;
   contactType?: string;
   source?: string;

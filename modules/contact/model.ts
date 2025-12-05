@@ -24,6 +24,16 @@ export interface IPhone {
   lastSmsAt?: Date;
 }
 
+export interface IAddress {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country: string; // ISO 3166-1 alpha-2 код (US, RU, etc.)
+  isPrimary: boolean;
+}
+
 export interface IContactType {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -38,6 +48,7 @@ export interface IContact extends Document {
   name: string;
   emails: IEmail[];
   phones: IPhone[];
+  addresses: IAddress[];
   company?: string;
   position?: string;
   notes?: string;
@@ -123,6 +134,42 @@ const PhoneSchema = new Schema<IPhone>(
   { _id: false }
 );
 
+const AddressSchema = new Schema<IAddress>(
+  {
+    line1: {
+      type: String,
+      trim: true,
+    },
+    line2: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+    },
+    zip: {
+      type: String,
+      trim: true,
+    },
+    country: {
+      type: String,
+      uppercase: true,
+      trim: true,
+      default: 'US',
+    },
+    isPrimary: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: false }
+);
+
 const ContactSchema = new Schema<IContact>(
   {
     name: {
@@ -136,6 +183,10 @@ const ContactSchema = new Schema<IContact>(
     },
     phones: {
       type: [PhoneSchema],
+      default: [],
+    },
+    addresses: {
+      type: [AddressSchema],
       default: [],
     },
     company: {
@@ -173,6 +224,9 @@ const ContactSchema = new Schema<IContact>(
 
 ContactSchema.index({ 'emails.address': 1 });
 ContactSchema.index({ 'phones.e164': 1 });
+ContactSchema.index({ 'phones.country': 1 });
+ContactSchema.index({ 'addresses.city': 1 });
+ContactSchema.index({ 'addresses.country': 1 });
 ContactSchema.index({ ownerId: 1 });
 ContactSchema.index({ name: 'text', company: 'text' });
 

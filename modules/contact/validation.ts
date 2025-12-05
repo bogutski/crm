@@ -28,12 +28,23 @@ export const phoneSchema = z.object({
   lastSmsAt: z.coerce.date().optional().describe('Дата последнего SMS'),
 }).describe('Телефон контакта');
 
+export const addressSchema = z.object({
+  line1: z.string().optional().describe('Адресная строка 1'),
+  line2: z.string().optional().describe('Адресная строка 2'),
+  city: z.string().optional().describe('Город'),
+  state: z.string().optional().describe('Штат/Область'),
+  zip: z.string().optional().describe('Почтовый индекс'),
+  country: z.string().length(2, 'Country code must be 2 characters').default('US').describe('Код страны ISO 3166-1 alpha-2'),
+  isPrimary: z.boolean().optional().default(false).describe('Основной адрес'),
+}).describe('Адрес контакта');
+
 // === Input schemas (request body) ===
 
 export const createContactSchema = z.object({
   name: z.string().min(1, 'Name is required').describe('Имя контакта'),
   emails: z.array(emailSchema).optional().default([]).describe('Список email адресов'),
   phones: z.array(phoneSchema).optional().default([]).describe('Список телефонов'),
+  addresses: z.array(addressSchema).optional().default([]).describe('Список адресов'),
   company: z.string().optional().describe('Название компании'),
   position: z.string().optional().describe('Должность'),
   notes: z.string().optional().describe('Заметки'),
@@ -46,6 +57,7 @@ export const updateContactSchema = z.object({
   name: z.string().min(1, 'Name is required').optional().describe('Имя контакта'),
   emails: z.array(emailSchema).optional().describe('Список email адресов'),
   phones: z.array(phoneSchema).optional().describe('Список телефонов'),
+  addresses: z.array(addressSchema).optional().describe('Список адресов'),
   company: z.string().optional().describe('Название компании'),
   position: z.string().optional().describe('Должность'),
   notes: z.string().optional().describe('Заметки'),
@@ -55,7 +67,9 @@ export const updateContactSchema = z.object({
 }).describe('Данные для обновления контакта');
 
 export const contactFiltersSchema = z.object({
-  search: z.string().optional().describe('Поиск по имени, email, телефону, компании'),
+  search: z.string().optional().describe('Поиск по имени, email, телефону, компании, адресу'),
+  city: z.string().optional().describe('Фильтр по городу'),
+  country: z.string().optional().describe('Фильтр по коду страны (ISO 3166-1 alpha-2)'),
   ownerId: z.string().optional().describe('ID владельца контакта'),
   contactType: z.string().optional().describe('ID типа контакта'),
   source: z.string().optional().describe('ID источника'),
@@ -76,6 +90,7 @@ export const contactResponseSchema = z.object({
   name: z.string().describe('Имя контакта'),
   emails: z.array(emailSchema).describe('Список email адресов'),
   phones: z.array(phoneSchema).describe('Список телефонов'),
+  addresses: z.array(addressSchema).describe('Список адресов'),
   company: z.string().optional().describe('Название компании'),
   position: z.string().optional().describe('Должность'),
   notes: z.string().optional().describe('Заметки'),
@@ -110,10 +125,21 @@ export const phoneFormSchema = z.object({
   isPrimary: z.boolean(),
 });
 
+export const addressFormSchema = z.object({
+  line1: z.string().optional(),
+  line2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
+  country: z.string(),
+  isPrimary: z.boolean(),
+});
+
 export const contactFormSchema = z.object({
   name: z.string().min(1, 'Имя обязательно'),
   emails: z.array(emailFormSchema),
   phones: z.array(phoneFormSchema),
+  addresses: z.array(addressFormSchema),
   company: z.string().optional(),
   position: z.string().optional(),
   notes: z.string().optional(),

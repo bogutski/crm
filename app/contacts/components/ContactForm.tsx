@@ -21,6 +21,16 @@ interface Owner {
   email: string;
 }
 
+interface Address {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country: string;
+  isPrimary: boolean;
+}
+
 interface Contact {
   id: string;
   name: string;
@@ -32,6 +42,7 @@ interface Contact {
     type: 'MOBILE' | 'FIXED_LINE' | 'UNKNOWN';
     isPrimary: boolean;
   }[];
+  addresses?: Address[];
   company?: string;
   position?: string;
   notes?: string;
@@ -63,6 +74,17 @@ const getDefaultValues = (contact?: Contact): ContactFormData => {
       phones: contact.phones.length > 0
         ? contact.phones.map(p => ({ number: p.e164, isPrimary: p.isPrimary }))
         : [{ number: '', isPrimary: true }],
+      addresses: (contact.addresses && contact.addresses.length > 0)
+        ? contact.addresses.map(a => ({
+            line1: a.line1 || '',
+            line2: a.line2 || '',
+            city: a.city || '',
+            state: a.state || '',
+            zip: a.zip || '',
+            country: a.country || 'US',
+            isPrimary: a.isPrimary,
+          }))
+        : [],
       company: contact.company || '',
       position: contact.position || '',
       notes: contact.notes || '',
@@ -76,6 +98,7 @@ const getDefaultValues = (contact?: Contact): ContactFormData => {
     name: '',
     emails: [{ address: '' }],
     phones: [{ number: '', isPrimary: true }],
+    addresses: [],
     company: '',
     position: '',
     notes: '',
@@ -119,7 +142,14 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
     remove: removePhone,
   } = useFieldArray({ control, name: 'phones' });
 
+  const {
+    fields: addressFields,
+    append: appendAddress,
+    remove: removeAddress,
+  } = useFieldArray({ control, name: 'addresses' });
+
   const phones = watch('phones');
+  const addresses = watch('addresses');
 
   useEffect(() => {
     Promise.all([
@@ -150,6 +180,12 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
     });
   };
 
+  const setAddressPrimary = (index: number) => {
+    addresses.forEach((_, i) => {
+      setValue(`addresses.${i}.isPrimary`, i === index);
+    });
+  };
+
   const onSubmit = async (data: ContactFormData) => {
     setSubmitError(null);
 
@@ -167,10 +203,24 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
           isPrimary: p.isPrimary,
         }));
 
+      // Фильтруем адреса - оставляем только те, где заполнено хотя бы одно поле
+      const validAddresses = data.addresses
+        .filter(a => a.line1?.trim() || a.line2?.trim() || a.city?.trim() || a.state?.trim() || a.zip?.trim())
+        .map(a => ({
+          line1: a.line1?.trim() || undefined,
+          line2: a.line2?.trim() || undefined,
+          city: a.city?.trim() || undefined,
+          state: a.state?.trim() || undefined,
+          zip: a.zip?.trim() || undefined,
+          country: a.country || 'US',
+          isPrimary: a.isPrimary,
+        }));
+
       const payload = {
         name: data.name.trim(),
         emails: validEmails,
         phones: validPhones,
+        addresses: validAddresses,
         company: data.company?.trim() || undefined,
         position: data.position?.trim() || undefined,
         notes: data.notes?.trim() || undefined,
@@ -352,6 +402,121 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Addresses */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Адрес
+          </label>
+          {addressFields.length === 0 && (
+            <button
+              type="button"
+              onClick={() => appendAddress({ line1: '', line2: '', city: '', state: '', zip: '', country: 'US', isPrimary: true })}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              + Добавить
+            </button>
+          )}
+        </div>
+        {addressFields.length > 0 && (
+          <div className="space-y-4">
+            {addressFields.map((field, index) => (
+              <div key={field.id} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    Адрес {index + 1}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Controller
+                      control={control}
+                      name={`addresses.${index}.isPrimary`}
+                      render={({ field: primaryField }) => (
+                        <button
+                          type="button"
+                          onClick={() => setAddressPrimary(index)}
+                          className={`px-2 py-1 rounded ${
+                            primaryField.value
+                              ? 'text-yellow-500'
+                              : 'text-zinc-300 dark:text-zinc-600 hover:text-yellow-500'
+                          }`}
+                          title={primaryField.value ? 'Основной' : 'Сделать основным'}
+                        >
+                          <Star className="w-4 h-4" fill={primaryField.value ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAddress(index)}
+                      className="px-2 py-1 text-zinc-400 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    {...register(`addresses.${index}.line1`)}
+                    placeholder="Адресная строка 1"
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    {...register(`addresses.${index}.line2`)}
+                    placeholder="Адресная строка 2 (опционально)"
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      {...register(`addresses.${index}.city`)}
+                      placeholder="Город"
+                      className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      {...register(`addresses.${index}.state`)}
+                      placeholder="Штат/Область"
+                      className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      {...register(`addresses.${index}.zip`)}
+                      placeholder="ZIP-код"
+                      className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <select
+                      {...register(`addresses.${index}.country`)}
+                      className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="US">США</option>
+                      <option value="CA">Канада</option>
+                      <option value="GB">Великобритания</option>
+                      <option value="DE">Германия</option>
+                      <option value="FR">Франция</option>
+                      <option value="RU">Россия</option>
+                      <option value="UA">Украина</option>
+                      <option value="KZ">Казахстан</option>
+                      <option value="BY">Беларусь</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => appendAddress({ line1: '', line2: '', city: '', state: '', zip: '', country: 'US', isPrimary: false })}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              + Добавить ещё адрес
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Owner */}

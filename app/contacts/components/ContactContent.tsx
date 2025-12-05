@@ -33,6 +33,16 @@ interface Phone {
   isSubscribed: boolean;
 }
 
+interface Address {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country: string;
+  isPrimary: boolean;
+}
+
 interface ContactType {
   id: string;
   name: string;
@@ -50,6 +60,7 @@ interface Contact {
   name: string;
   emails: Email[];
   phones: Phone[];
+  addresses: Address[];
   company?: string;
   position?: string;
   notes?: string;
@@ -325,6 +336,33 @@ export function ContactContent({
                 </td>
               </tr>
 
+              {/* Addresses */}
+              <tr>
+                <td className="py-1 pr-4 text-zinc-500 dark:text-zinc-400 align-top">
+                  Адрес
+                </td>
+                <td className="py-1 text-zinc-900 dark:text-zinc-100">
+                  {contact.addresses && contact.addresses.length > 0 ? (
+                    <div className="space-y-1">
+                      {contact.addresses.map((addr, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span>
+                            {[addr.line1, addr.line2, addr.city, addr.state, addr.zip, addr.country]
+                              .filter(Boolean)
+                              .join(', ')}
+                          </span>
+                          {addr.isPrimary && (
+                            <Star className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-zinc-400">—</span>
+                  )}
+                </td>
+              </tr>
+
               {/* Company */}
               <tr>
                 <td className="py-1 pr-4 text-zinc-500 dark:text-zinc-400">
@@ -362,7 +400,12 @@ export function ContactContent({
                 </td>
                 <td className="py-1 text-zinc-900 dark:text-zinc-100">
                   {owner ? (
-                    <span>{owner.name || owner.email}</span>
+                    <Link
+                      href={`/users/${owner.id}`}
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {owner.name || owner.email}
+                    </Link>
                   ) : (
                     <span className="text-zinc-400">—</span>
                   )}
